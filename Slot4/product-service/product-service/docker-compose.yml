@@ -10,7 +10,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
       MONGO_INITDB_DATABASE: product-service
     volumes:
-      - mongo-data:/data/db          # giữ data khi restart container
+      - mongo-data:/data/db # giữ data khi restart container
 
   # (khuyến nghị) UI xem dữ liệu Mongo trên trình duyệt
   mongo-express:
