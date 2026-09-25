@@ -35,3 +35,4 @@ build/
 
 ### docker data ###
 docker/mysql/data
+*.session.sql
