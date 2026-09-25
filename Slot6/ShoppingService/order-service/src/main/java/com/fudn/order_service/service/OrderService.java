@@ -1,5 +1,6 @@
 package com.fudn.order_service.service;
 
+import com.fudn.order_service.client.InventoryClient;
 import com.fudn.order_service.dto.OrderRequest;
 import com.fudn.order_service.model.Order;
 import com.fudn.order_service.repository.OrderRepository;
@@ -15,6 +16,7 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final InventoryClient inventoryClient;
 
     public void placeOrder(OrderRequest orderRequest) {
         var order = mapToOrder(orderRequest);
