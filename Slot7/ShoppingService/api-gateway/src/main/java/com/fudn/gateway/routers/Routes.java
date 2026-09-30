@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 public class Routes {
 
     @Bean
-    public RouteLocator routes(RouteLocatorBuilder builder) {
+    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
                 // Route cho Product Service
                 .route("product-service", r -> r.path("/products/**")
