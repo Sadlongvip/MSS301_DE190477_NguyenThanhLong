@@ -2,6 +2,7 @@ package com.fudn.order_service.service;
 
 import com.fudn.order_service.client.InventoryClient;
 import com.fudn.order_service.dto.OrderRequest;
+import com.fudn.order_service.exception.ProductNotInStockException;
 import com.fudn.order_service.model.Order;
 import com.fudn.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ public class OrderService {
             var order = mapToOrder(orderRequest);
             orderRepository.save(order);
         } else {
-            throw new RuntimeException(
+            throw new ProductNotInStockException(
                     "Product with Skucode " + orderRequest.skuCode() + " is not in stock");
         }
     }
