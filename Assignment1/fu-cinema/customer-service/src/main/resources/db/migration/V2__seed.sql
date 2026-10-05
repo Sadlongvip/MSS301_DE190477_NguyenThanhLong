@@ -7,7 +7,7 @@ INSERT INTO customer (
         password
     )
 VALUES (
-        N 'Nguyễn Văn An',
+        N'Nguyễn Văn An',
         '0905123456',
         'an@gmail.com',
         '2002-05-10',
