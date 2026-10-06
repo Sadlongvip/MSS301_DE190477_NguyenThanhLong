@@ -35,12 +35,12 @@ services:
     image: mongo:7.0.5
     container_name: cinema-mongo
     ports:
-      - "27017:27017"
+      - "27018:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
-      - ./docker/mongodb/data:/data/db
+      - mongo-data:/data/db
 
   # ---------- MySQL: booking-service ----------
   mysql:
@@ -56,4 +56,5 @@ services:
 
 volumes:
   sqlserver-data:
+  mongo-data:
 
