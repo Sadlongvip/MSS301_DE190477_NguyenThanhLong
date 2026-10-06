@@ -36,6 +36,7 @@ public class DataSeeder implements CommandLineRunner {
     public static final String MOVIE_HAUNTED = "66f200000000000000000002";
     public static final String MOVIE_ROBOT = "66f200000000000000000003";
     public static final String MOVIE_SUMMER_ENDED = "66f200000000000000000004";
+    public static final String MOVIE_ACTION = "66f200000000000000000005";
 
     private final GenreRepository genreRepository;
     private final RoomRepository roomRepository;
@@ -74,7 +75,10 @@ public class DataSeeder implements CommandLineRunner {
                         GENRE_ANIMATION, MovieStatus.COMING_SOON),
                 new Movie(MOVIE_SUMMER_ENDED, "Mùa Hè Năm Ấy", "Câu chuyện tình đầu tuổi học trò.",
                         "Nguyễn Quang Dũng", 110, "Tiếng Việt", AgeRating.T16, LocalDate.of(2026, 6, 1),
-                        GENRE_ROMANCE, MovieStatus.ENDED)));
+                        GENRE_ROMANCE, MovieStatus.ENDED),
+                new Movie(MOVIE_ACTION, "Biệt Đội Hành Động", "Phim hành động kịch tính.",
+                        "Ngô Thanh Vân", 110, "Tiếng Việt", AgeRating.T16, LocalDate.of(2026, 8, 1),
+                        GENRE_ACTION, MovieStatus.NOW_SHOWING)));
 
         showtimeRepository.saveAll(List.of(
                 showtime("66f300000000000000000001", MOVIE_GALAXY, ROOM_01, "2026-12-20T19:00", 125, 95000,
