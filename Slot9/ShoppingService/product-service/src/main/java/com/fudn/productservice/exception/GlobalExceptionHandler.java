@@ -1,4 +1,4 @@
-package com.fudn.product_service.exception;
+package com.fudn.productservice.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;

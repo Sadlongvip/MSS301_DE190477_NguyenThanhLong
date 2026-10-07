@@ -1,9 +1,10 @@
 package com.fudn.product_service.grading;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fudn.product_service.dto.ProductRequest;
-import com.fudn.product_service.model.Product;
-import com.fudn.product_service.repository.IProductRepository;
+import com.fudn.productservice.dto.ProductRequest;
+import com.fudn.productservice.model.Product;
+import com.fudn.productservice.repository.IProductRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

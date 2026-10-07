@@ -1,8 +1,9 @@
 package com.fudn.product_service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fudn.product_service.dto.ProductRequest;
-import com.fudn.product_service.repository.IProductRepository;
+import com.fudn.productservice.dto.ProductRequest;
+import com.fudn.productservice.repository.IProductRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

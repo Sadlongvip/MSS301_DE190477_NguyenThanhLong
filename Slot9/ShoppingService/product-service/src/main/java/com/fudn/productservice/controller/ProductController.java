@@ -1,10 +1,11 @@
-package com.fudn.product_service.controller;
+package com.fudn.productservice.controller;
 
-import com.fudn.product_service.dto.ProductRequest;
-import com.fudn.product_service.dto.ProductResponse;
-import com.fudn.product_service.service.ProductService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import com.fudn.productservice.dto.ProductRequest;
+import com.fudn.productservice.dto.ProductResponse;
+import com.fudn.productservice.service.ProductService;
 
 import java.util.List;
 

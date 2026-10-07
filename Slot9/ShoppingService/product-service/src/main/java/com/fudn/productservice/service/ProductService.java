@@ -1,13 +1,14 @@
-package com.fudn.product_service.service;
+package com.fudn.productservice.service;
 
-import com.fudn.product_service.dto.ProductRequest;
-import com.fudn.product_service.dto.ProductResponse;
-import com.fudn.product_service.exception.ProductNotFoundException;
-import com.fudn.product_service.model.Product;
-import com.fudn.product_service.repository.IProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import com.fudn.productservice.dto.ProductRequest;
+import com.fudn.productservice.dto.ProductResponse;
+import com.fudn.productservice.exception.ProductNotFoundException;
+import com.fudn.productservice.model.Product;
+import com.fudn.productservice.repository.IProductRepository;
 
 import java.util.List;
 

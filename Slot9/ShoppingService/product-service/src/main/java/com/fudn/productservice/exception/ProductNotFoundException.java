@@ -1,4 +1,4 @@
-package com.fudn.product_service.exception;
+package com.fudn.productservice.exception;
 
 /**
  * Ném ra khi không tìm thấy sản phẩm theo id.

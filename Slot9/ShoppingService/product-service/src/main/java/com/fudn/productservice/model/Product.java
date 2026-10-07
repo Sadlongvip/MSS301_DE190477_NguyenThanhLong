@@ -1,4 +1,4 @@
-package com.fudn.product_service.model;
+package com.fudn.productservice.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

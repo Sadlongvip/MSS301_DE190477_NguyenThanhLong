@@ -2,6 +2,8 @@ package com.fudn.product_service;
 
 import org.springframework.boot.SpringApplication;
 
+import com.fudn.productservice.ProductServiceApplication;
+
 public class TestProductServiceApplication {
 
 	public static void main(String[] args) {
