@@ -2,6 +2,8 @@ package com.fudn.order_service;
 
 import org.springframework.boot.SpringApplication;
 
+import com.fudn.orderservice.OrderServiceApplication;
+
 public class TestOrderServiceApplication {
 
 	public static void main(String[] args) {

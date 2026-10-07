@@ -1,13 +1,14 @@
-package com.fudn.order_service.service;
+package com.fudn.orderservice.service;
 
-import com.fudn.order_service.client.InventoryClient;
-import com.fudn.order_service.dto.OrderRequest;
-import com.fudn.order_service.exception.ProductNotInStockException;
-import com.fudn.order_service.model.Order;
-import com.fudn.order_service.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fudn.orderservice.client.InventoryClient;
+import com.fudn.orderservice.dto.OrderRequest;
+import com.fudn.orderservice.exception.ProductNotInStockException;
+import com.fudn.orderservice.model.Order;
+import com.fudn.orderservice.repository.OrderRepository;
 
 import java.util.UUID;
 

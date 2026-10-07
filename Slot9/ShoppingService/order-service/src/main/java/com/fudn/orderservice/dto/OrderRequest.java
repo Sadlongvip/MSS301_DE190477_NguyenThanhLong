@@ -1,4 +1,4 @@
-package com.fudn.order_service.dto;
+package com.fudn.orderservice.dto;
 
 import java.math.BigDecimal;
 

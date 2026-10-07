@@ -1,4 +1,4 @@
-package com.fudn.order_service.client;
+package com.fudn.orderservice.client;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.RequestMapping;

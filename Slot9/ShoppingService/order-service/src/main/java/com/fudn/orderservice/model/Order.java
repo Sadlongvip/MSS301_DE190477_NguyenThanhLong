@@ -1,4 +1,4 @@
-package com.fudn.order_service.model;
+package com.fudn.orderservice.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

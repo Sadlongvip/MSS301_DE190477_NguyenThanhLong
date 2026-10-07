@@ -1,10 +1,11 @@
-package com.fudn.order_service.controller;
+package com.fudn.orderservice.controller;
 
-import com.fudn.order_service.dto.OrderRequest;
-import com.fudn.order_service.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import com.fudn.orderservice.dto.OrderRequest;
+import com.fudn.orderservice.service.OrderService;
 
 @RestController
 @RequestMapping("/api/order")
