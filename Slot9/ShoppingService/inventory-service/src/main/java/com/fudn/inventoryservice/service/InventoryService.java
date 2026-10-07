@@ -1,9 +1,10 @@
-package com.fudn.inventory_service.service;
+package com.fudn.inventoryservice.service;
 
-import com.fudn.inventory_service.repository.InventoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.fudn.inventoryservice.repository.InventoryRepository;
 
 @Service
 @RequiredArgsConstructor

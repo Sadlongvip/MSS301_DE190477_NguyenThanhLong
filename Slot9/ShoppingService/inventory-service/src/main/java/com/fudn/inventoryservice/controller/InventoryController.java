@@ -1,9 +1,10 @@
-package com.fudn.inventory_service.controller;
+package com.fudn.inventoryservice.controller;
 
-import com.fudn.inventory_service.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import com.fudn.inventoryservice.service.InventoryService;
 
 @RestController
 @RequestMapping("/api/inventory")

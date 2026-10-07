@@ -1,4 +1,4 @@
-package com.fudn.inventory_service.model;
+package com.fudn.inventoryservice.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
