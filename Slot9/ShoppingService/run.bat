@@ -6,7 +6,7 @@ echo ========================================================
 echo   SHOPPING SERVICE - KHOI DONG HE THONG MICROSERVICES
 echo ========================================================
 
-echo [1/4] Khoi dong Database goc (MySQL & MongoDB) qua Docker...
+echo [1/4] Khoi dong Database goc (MySQL ^& MongoDB) qua Docker...
 docker compose up -d
 
 echo.
@@ -16,17 +16,17 @@ docker compose up -d
 popd
 
 echo.
-echo [3/4] Dang khoi dong cac Backend Services (Product, Inventory, Order)...
+echo [3/4] Dang khoi dong 2 Backend Services dau tien (Product, Inventory)...
 start "Product Service (Port 8080)" cmd /k "cd /d %~dp0product-service && mvnw.cmd spring-boot:run"
 start "Inventory Service (Port 8082)" cmd /k "cd /d %~dp0inventory-service && mvnw.cmd spring-boot:run"
-start "Order Service (Port 8081)" cmd /k "cd /d %~dp0order-service && mvnw.cmd spring-boot:run"
 
 echo.
-echo [!] Dang cho 20 giay de cac Backend Services khoi dong truoc khi bat API Gateway...
+echo [!] Dang cho 20 giay de Product Service va Inventory Service khoi dong truoc khi bat cac service tiep theo...
 timeout /t 20 /nobreak
 
 echo.
-echo [4/4] Khoi dong API Gateway (Port 9000)...
+echo [4/4] Dang khoi dong 2 Services con lai (Order, API Gateway)...
+start "Order Service (Port 8081)" cmd /k "cd /d %~dp0order-service && mvnw.cmd spring-boot:run"
 start "API Gateway (Port 9000)" cmd /k "cd /d %~dp0api-gateway && mvnw.cmd spring-boot:run"
 
 echo.
