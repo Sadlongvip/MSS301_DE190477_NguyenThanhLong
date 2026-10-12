@@ -17,8 +17,8 @@ public class SecurityConfig {
 
     // DOC-16a
     private final String[] freeResourceUrls = {
-        "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**",
-        "/swagger-resources/**", "/aggregate/**"
+        "/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs", "/v3/api-docs/**",
+        "/api-docs/**", "/swagger-resources/**", "/aggregate/**"
     };
 
     // DOC-16b

@@ -21,8 +21,8 @@ start "Product Service (Port 8080)" cmd /k "cd /d %~dp0product-service && mvnw.c
 start "Inventory Service (Port 8082)" cmd /k "cd /d %~dp0inventory-service && mvnw.cmd spring-boot:run"
 
 echo.
-echo [!] Dang cho 20 giay de Product Service va Inventory Service khoi dong truoc khi bat cac service tiep theo...
-timeout /t 20 /nobreak
+echo [!] Dang cho 10 giay de Product Service va Inventory Service khoi dong truoc khi bat cac service tiep theo...
+timeout /t 10 /nobreak
 
 echo.
 echo [4/4] Dang khoi dong 2 Services con lai (Order, API Gateway)...
