@@ -76,6 +76,9 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<jvmArguments>-Xms128m -Xmx256m -XX:TieredStopAtLevel=1</jvmArguments>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
