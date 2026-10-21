@@ -1,0 +1,2 @@
+# Giữ thư mục reduce cho Git
+# Chứa Redux store, slices hoặc useReducer (cartReducer, userReducer, orderReducer...)

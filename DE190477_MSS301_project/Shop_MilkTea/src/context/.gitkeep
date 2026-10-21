@@ -1,0 +1,2 @@
+# Giữ thư mục context cho Git
+# Chứa React Context API quản lý state toàn cục (AuthContext, CartContext, ThemeContext...)

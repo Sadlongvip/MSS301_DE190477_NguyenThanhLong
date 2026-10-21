@@ -1,0 +1,2 @@
+# Giữ thư mục hook cho Git
+# Chứa các custom hooks tái sử dụng logic (useAuth, useCart, useDebounce, useFetch...)

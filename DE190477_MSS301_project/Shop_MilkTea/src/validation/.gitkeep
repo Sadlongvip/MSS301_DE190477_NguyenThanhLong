@@ -1,0 +1,2 @@
+# Giữ thư mục validation cho Git
+# Chứa các hàm/schema validate form (validateLogin, validateCheckout, validateProduct, Yup/Zod schemas...)

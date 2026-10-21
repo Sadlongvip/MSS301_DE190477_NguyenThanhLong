@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS t_payment_transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    transaction_code VARCHAR(64) NOT NULL UNIQUE,
+    order_code VARCHAR(64) NOT NULL,
+    user_id BIGINT,
+    amount DOUBLE NOT NULL,
+    payment_method VARCHAR(32) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+    bank_code VARCHAR(32),
+    vnp_transaction_no VARCHAR(64),
+    response_code VARCHAR(32),
+    order_info VARCHAR(255),
+    pay_url TEXT,
+    payment_time DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by VARCHAR(255),
+    INDEX idx_order_code (order_code),
+    INDEX idx_transaction_code (transaction_code),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

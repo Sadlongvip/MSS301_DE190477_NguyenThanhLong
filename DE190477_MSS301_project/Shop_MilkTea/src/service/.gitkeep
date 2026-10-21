@@ -1,0 +1,2 @@
+# Giữ thư mục service cho Git
+# Chứa các hàm gọi API backend (authService, productService, orderService, customerService...)

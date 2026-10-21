@@ -1,0 +1,2 @@
+# Giữ thư mục router cho Git
+# Chứa cấu hình chuyển trang (React Router), phân quyền router (PrivateRoute, ProtectedRoute)

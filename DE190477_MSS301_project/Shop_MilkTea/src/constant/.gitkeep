@@ -1,0 +1,2 @@
+# Giữ thư mục constant cho Git
+# Chứa các hằng số dùng chung (API_ENDPOINTS, ORDER_STATUS, ROLES, STORAGE_KEYS...)

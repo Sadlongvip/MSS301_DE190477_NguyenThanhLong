@@ -1,0 +1,2 @@
+# Giữ thư mục util cho Git
+# Chứa các hàm tiện ích tái sử dụng (formatCurrency VND, formatDate, storageHelper, validateHelper...)
