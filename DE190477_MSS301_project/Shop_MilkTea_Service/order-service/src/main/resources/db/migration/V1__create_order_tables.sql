@@ -29,8 +29,7 @@ CREATE TABLE IF NOT EXISTS t_carts (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(100) DEFAULT 'SYSTEM',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    updated_by VARCHAR(100) DEFAULT 'SYSTEM',
-    CONSTRAINT fk_cart_user FOREIGN KEY (user_id) REFERENCES t_accounts(id) ON DELETE CASCADE
+    updated_by VARCHAR(100) DEFAULT 'SYSTEM'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Bảng chi tiết giỏ hàng
@@ -76,7 +75,7 @@ CREATE TABLE IF NOT EXISTS t_orders (
     created_by VARCHAR(100) DEFAULT 'SYSTEM',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     updated_by VARCHAR(100) DEFAULT 'SYSTEM',
-    CONSTRAINT fk_order_user FOREIGN KEY (user_id) REFERENCES t_accounts(id) ON DELETE SET NULL
+    INDEX idx_orders_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Bảng chi tiết đơn hàng
