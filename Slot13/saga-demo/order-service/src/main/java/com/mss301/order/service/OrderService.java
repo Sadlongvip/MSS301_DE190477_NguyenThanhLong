@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 // Mỗi method = 1 LOCAL TRANSACTION trên orderdb (MySQL)
 @Service
 @RequiredArgsConstructor
@@ -14,6 +17,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final SagaLogRepository sagaLogRepository;
+    private final OutboxRepository outboxRepository;
 
     @Transactional
     public Order createPendingOrder(CreateOrderRequest req) {
@@ -24,7 +28,32 @@ public class OrderService {
         order.setAmount(req.amount());
         order.setStatus(OrderStatus.PENDING);
         order.setSagaStatus(SagaStatus.PENDING);
-        return orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        // Transactional Outbox Pattern (EXT-5):
+        // Lưu message vào bảng outbox trong CÙNG TRANSACTION với Order.
+        // Đảm bảo không bao giờ mất message kể cả khi service crash ngay sau khi tạo đơn.
+        OutboxMessage outbox = OutboxMessage.builder()
+                .aggregateType("ORDER")
+                .aggregateId(savedOrder.getId())
+                .type("ORDER_CREATED")
+                .payload(String.format("{\"orderId\":%d,\"customerId\":\"%s\",\"productId\":\"%s\",\"quantity\":%d,\"amount\":%.2f}",
+                        savedOrder.getId(), req.customerId(), req.productId(), req.quantity(), req.amount()))
+                .status("PENDING")
+                .createdAt(LocalDateTime.now())
+                .build();
+        outboxRepository.save(outbox);
+
+        return savedOrder;
+    }
+
+    @Transactional
+    public void markOutboxProcessed(Long outboxId) {
+        outboxRepository.findById(outboxId).ifPresent(msg -> msg.setStatus("PROCESSED"));
+    }
+
+    public List<OutboxMessage> findPendingOutbox() {
+        return outboxRepository.findByStatusOrderByIdAsc("PENDING");
     }
 
     @Transactional
