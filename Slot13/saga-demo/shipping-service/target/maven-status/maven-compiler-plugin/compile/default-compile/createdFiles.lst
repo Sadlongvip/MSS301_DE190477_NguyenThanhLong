@@ -1,0 +1,7 @@
+com\mss301\shipping\repository\ShipmentRepository.class
+com\mss301\shipping\dto\CreateShipmentRequest.class
+com\mss301\shipping\entity\Shipment$ShipmentBuilder.class
+com\mss301\shipping\controller\ShippingController.class
+com\mss301\shipping\service\ShippingService.class
+com\mss301\shipping\ShippingServiceApplication.class
+com\mss301\shipping\entity\Shipment.class
