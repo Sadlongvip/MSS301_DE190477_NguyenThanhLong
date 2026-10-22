@@ -1,8 +1,12 @@
 package com.mss301.order.saga;
 
-import com.mss301.order.client.InventoryClient;
-import com.mss301.order.client.PaymentClient;
+import com.mss301.order.client.InventoryApi;
+import com.mss301.order.client.PaymentApi;
+import com.mss301.order.client.ShippingApi;
 import com.mss301.order.dto.CreateOrderRequest;
+import com.mss301.order.dto.CreateShipmentRequest;
+import com.mss301.order.dto.PaymentRequest;
+import com.mss301.order.dto.ReserveRequest;
 import com.mss301.order.entity.*;
 import com.mss301.order.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +16,7 @@ import org.springframework.core.retry.RetryException;
 import org.springframework.core.retry.RetryPolicy;
 import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -29,8 +34,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class OrderSagaOrchestrator {
 
     private final OrderService orderService;
-    private final InventoryClient inventoryClient;
-    private final PaymentClient paymentClient;
+    private final InventoryApi inventoryApi;
+    private final PaymentApi paymentApi;
+    private final ShippingApi shippingApi;
 
     // Spring Framework 7: RetryTemplate có sẵn trong spring-core (không cần thư viện spring-retry).
     // maxRetries(2) = 1 lần chạy đầu + 2 lần thử lại = tối đa 3 lần, cách nhau 1 giây.
@@ -52,14 +58,14 @@ public class OrderSagaOrchestrator {
         orderService.log(orderId, "CREATE_ORDER", "SUCCESS", "Order PENDING");
         orderService.updateSagaStatus(orderId, SagaStatus.EXECUTING);
 
-        // Ngăn xếp các compensating action của những bước ĐÃ thành công
+        // Ngăn xếp các compensating action của những bước ĐÃ thành công (LIFO)
         Deque<Runnable> compensations = new ArrayDeque<>();
 
         try {
             // ===== Bước 2: giữ hàng (inventory-service / MongoDB) =====
-            inventoryClient.reserve(orderId, req.productId(), req.quantity());
+            inventoryApi.reserve(new ReserveRequest(orderId, req.productId(), req.quantity()));
             orderService.log(orderId, "RESERVE_INVENTORY", "SUCCESS", "Đã giữ " + req.quantity() + " " + req.productId());
-            compensations.push(() -> inventoryClient.release(orderId));
+            compensations.push(() -> inventoryApi.release(orderId));
 
             if (paymentDelayMs > 0) {
                 log.warn("[DEMO] Chờ {} ms trước khi thanh toán order={}", paymentDelayMs, orderId);
@@ -67,9 +73,22 @@ public class OrderSagaOrchestrator {
             }
 
             // ===== Bước 3: thanh toán (payment-service / SQL Server) =====
-            paymentClient.pay(orderId, req.customerId(), req.amount());
-            orderService.log(orderId, "PROCESS_PAYMENT", "SUCCESS", "Đã thu " + req.amount());
-            compensations.push(() -> paymentClient.refund(orderId));
+            try {
+                paymentApi.pay(new PaymentRequest(orderId, req.customerId(), req.amount()));
+                orderService.log(orderId, "PROCESS_PAYMENT", "SUCCESS", "Đã thu " + req.amount());
+                compensations.push(() -> paymentApi.refund(orderId));
+            } catch (ResourceAccessException timeoutEx) {
+                // [EXT-2 Timeout]: Nếu kết nối bị timeout khi gọi pay, SQL Server có thể đã trừ tiền nhưng response bị drop.
+                // Do refund là idempotent, ta đẩy refund vào ngăn xếp để bồi hoàn an toàn nếu tiền thực tế đã bị trừ.
+                log.warn("Gọi payment bị timeout cho order={}, đẩy refund phòng vệ", orderId);
+                compensations.push(() -> paymentApi.refund(orderId));
+                throw timeoutEx;
+            }
+
+            // ===== Bước 4: giao hàng (shipping-service / PostgreSQL) (EXT-1) =====
+            shippingApi.create(new CreateShipmentRequest(orderId, req.customerId(), req.quantity(), "Default Address"));
+            orderService.log(orderId, "CREATE_SHIPPING", "SUCCESS", "Đã tạo đơn giao hàng");
+            compensations.push(() -> shippingApi.cancel(orderId));
 
             // ===== Bước cuối: xác nhận order =====
             orderService.confirmOrder(orderId);
@@ -95,11 +114,36 @@ public class OrderSagaOrchestrator {
         }
         if (!allOk) {
             // Giữ nguyên COMPENSATING để admin/job khác xử lý tiếp, KHÔNG báo COMPENSATED giả
-            log.error("Compensation cho order={} chưa xong, cần xử lý thủ công", orderId);
+            log.error("Compensation cho order={} chưa xong, cần xử lý thủ công (EXT-4)", orderId);
             return;
         }
         orderService.cancelOrder(orderId);          // compensation của bước 1
         orderService.log(orderId, "CANCEL_ORDER", "SUCCESS", "Saga COMPENSATED");
+    }
+
+    // [EXT-4] Khôi phục Saga bị treo (dành cho KB8 và các sự cố mạng kéo dài)
+    public boolean recoverCompensation(Long orderId) {
+        Order order = orderService.findById(orderId);
+        if (order == null || order.getSagaStatus() == SagaStatus.COMPLETED) {
+            return false;
+        }
+        log.info("Bắt đầu quy trình khôi phục Saga (Recovery) cho order={}", orderId);
+        boolean allOk = true;
+
+        // Gọi bồi hoàn theo thứ tự LIFO: shipping -> payment -> inventory (tất cả đều idempotent)
+        allOk &= runWithRetry(orderId, () -> shippingApi.cancel(orderId));
+        allOk &= runWithRetry(orderId, () -> paymentApi.refund(orderId));
+        allOk &= runWithRetry(orderId, () -> inventoryApi.release(orderId));
+
+        if (allOk) {
+            orderService.cancelOrder(orderId);
+            orderService.log(orderId, "CANCEL_ORDER", "SUCCESS", "Saga RECOVERED -> COMPENSATED");
+            log.info("Khôi phục Saga thành công cho order={}", orderId);
+            return true;
+        } else {
+            log.warn("Khôi phục Saga cho order={} chưa hoàn tất do service chưa phản hồi", orderId);
+            return false;
+        }
     }
 
     // Compensation phải "Reliable" -> thử lại tối đa 3 lần (Slide 25)
