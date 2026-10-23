@@ -4,6 +4,9 @@ import com.dework.paymentservice.client.OrderClient;
 import com.dework.paymentservice.config.VNPayConfig;
 import com.dework.paymentservice.dto.PaymentRequestDTO;
 import com.dework.paymentservice.dto.PaymentResponseDTO;
+import com.dework.paymentservice.event.PaymentFailedEvent;
+import com.dework.paymentservice.event.PaymentSuccessEvent;
+import com.dework.paymentservice.kafka.PaymentEventProducer;
 import com.dework.paymentservice.model.PaymentMethod;
 import com.dework.paymentservice.model.PaymentStatus;
 import com.dework.paymentservice.model.PaymentTransaction;
@@ -34,6 +37,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final VNPayConfig vnPayConfig;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final OrderClient orderClient;
+    private final PaymentEventProducer paymentEventProducer;
 
     @Override
     @Transactional
@@ -133,14 +137,25 @@ public class PaymentServiceImpl implements PaymentService {
         if (isSuccess) {
             transaction.setStatus(PaymentStatus.SUCCESS);
             log.info("Payment success for order {}", transaction.getOrderCode());
+            paymentEventProducer.publishPaymentSuccess(PaymentSuccessEvent.builder()
+                    .orderCode(transaction.getOrderCode())
+                    .transactionCode(transaction.getTransactionCode())
+                    .amount(transaction.getAmount())
+                    .paymentMethod(transaction.getPaymentMethod() != null ? transaction.getPaymentMethod().name() : "VNPAY")
+                    .build());
         } else {
             transaction.setStatus(PaymentStatus.FAILED);
             log.warn("Payment failed with response code {} for order {}", responseCode, transaction.getOrderCode());
+            paymentEventProducer.publishPaymentFailed(PaymentFailedEvent.builder()
+                    .orderCode(transaction.getOrderCode())
+                    .transactionCode(transaction.getTransactionCode())
+                    .reason("Thanh toán VNPay không thành công (Mã phản hồi VNPay: " + responseCode + ")")
+                    .build());
         }
 
         paymentTransactionRepository.save(transaction);
 
-        // 6. Báo cho order-service
+        // 6. Báo dự phòng cho order-service
         notifyOrderService(transaction.getOrderCode(), isSuccess ? "PAID" : "FAILED");
 
         response.put("RspCode", "00");

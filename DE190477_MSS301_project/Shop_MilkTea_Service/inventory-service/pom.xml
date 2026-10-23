@@ -52,6 +52,17 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 
+		<!-- Spring Kafka: Hỗ trợ Message Broker kết nối Apache Kafka cho mô hình Saga Choreography -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+
 		<!-- ======================================================= -->
 		<!-- CƠ SỞ DỮ LIỆU & TIỆN ÍCH BÊN NGOÀI                      -->
 		<!-- ======================================================= -->

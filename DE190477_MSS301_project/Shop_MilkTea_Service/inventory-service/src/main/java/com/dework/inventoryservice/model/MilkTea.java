@@ -37,6 +37,9 @@ public class MilkTea extends BaseEntity {
     @Builder.Default
     private Boolean isAvailable = true;
 
+    @Builder.Default
+    private Integer stockQuantity = 100;
+
     @ManyToOne
     @JoinColumn(name = "category_id")
     private CategoryTea category;

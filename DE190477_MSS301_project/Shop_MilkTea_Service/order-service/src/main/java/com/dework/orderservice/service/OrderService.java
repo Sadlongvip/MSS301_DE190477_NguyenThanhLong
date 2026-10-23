@@ -7,6 +7,10 @@ import com.dework.orderservice.dto.order.OrderItemRequest;
 import com.dework.orderservice.dto.order.OrderResponse;
 import com.dework.orderservice.dto.order.UpdateOrderStatusRequest;
 import com.dework.orderservice.exception.ApiException;
+import com.dework.orderservice.event.OrderCancelledEvent;
+import com.dework.orderservice.event.OrderCreatedEvent;
+import com.dework.orderservice.event.OrderItemPayload;
+import com.dework.orderservice.kafka.OrderEventProducer;
 import com.dework.orderservice.model.Order;
 import com.dework.orderservice.model.OrderItem;
 import com.dework.orderservice.model.OrderStatus;
@@ -38,6 +42,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final CartRepository cartRepository;
     private final PriceVerificationService priceVerificationService;
+    private final OrderEventProducer orderEventProducer;
 
     private static final DateTimeFormatter ORDER_CODE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmmss");
 
@@ -123,6 +128,27 @@ public class OrderService {
                 log.info("Cleared guest cart for sessionId={}", request.getSessionId());
             });
         }
+
+        // Phát event OrderCreatedEvent sang Kafka (Saga Choreography)
+        List<OrderItemPayload> eventItems = saved.getItems().stream().map(i -> OrderItemPayload.builder()
+                .milkTeaId(i.getMilkTeaId())
+                .milkTeaName(i.getMilkTeaName())
+                .quantity(i.getQuantity())
+                .unitPrice(i.getUnitPrice())
+                .size(i.getSize())
+                .toppings(i.getToppings())
+                .build()).toList();
+
+        orderEventProducer.publishOrderCreated(OrderCreatedEvent.builder()
+                .orderCode(saved.getOrderCode())
+                .userId(saved.getUserId())
+                .customerName(saved.getCustomerName())
+                .phoneNumber(saved.getPhoneNumber())
+                .shippingAddress(saved.getShippingAddress())
+                .paymentMethod(saved.getPaymentMethod() != null ? saved.getPaymentMethod().name() : "COD")
+                .totalAmount(saved.getTotalAmount())
+                .items(eventItems)
+                .build());
 
         return OrderResponse.from(saved);
     }
@@ -225,6 +251,13 @@ public class OrderService {
 
         Order updated = orderRepository.save(order);
         log.info("Order cancelled: orderCode={}, reason={}, byUser={}", orderCode, cancelReason, currentUserId);
+
+        // Phát OrderCancelledEvent để kho hoàn trả tồn kho (Compensating Transaction)
+        orderEventProducer.publishOrderCancelled(OrderCancelledEvent.builder()
+                .orderCode(orderCode)
+                .reason(cancelReason)
+                .build());
+
         return OrderResponse.from(updated);
     }
 
