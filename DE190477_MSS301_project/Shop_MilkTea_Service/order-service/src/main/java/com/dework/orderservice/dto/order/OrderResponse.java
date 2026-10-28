@@ -4,6 +4,7 @@ import com.dework.orderservice.model.Order;
 import com.dework.orderservice.model.OrderStatus;
 import com.dework.orderservice.model.PaymentMethod;
 import com.dework.orderservice.model.PaymentStatus;
+import com.dework.orderservice.model.SagaStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -34,6 +35,7 @@ public class OrderResponse {
     private PaymentMethod paymentMethod;
     private PaymentStatus paymentStatus;
     private OrderStatus status;
+    private SagaStatus sagaStatus;
     private String cancelReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -64,6 +66,7 @@ public class OrderResponse {
                 .paymentMethod(order.getPaymentMethod())
                 .paymentStatus(order.getPaymentStatus())
                 .status(order.getStatus())
+                .sagaStatus(order.getSagaStatus())
                 .cancelReason(order.getCancelReason())
                 .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())

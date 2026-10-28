@@ -17,6 +17,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 @EnableKafka
@@ -64,9 +66,17 @@ public class KafkaConfig {
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
+    public DefaultErrorHandler defaultErrorHandler() {
+        // Tự động retry tối đa 3 lần (1 lần chạy đầu + 2 lần retry, delay 1 giây) trước khi đánh dấu lỗi
+        FixedBackOff fixedBackOff = new FixedBackOff(1000L, 2);
+        return new DefaultErrorHandler(fixedBackOff);
+    }
+
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(DefaultErrorHandler defaultErrorHandler) {
         ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
+        factory.setCommonErrorHandler(defaultErrorHandler);
         return factory;
     }
 }

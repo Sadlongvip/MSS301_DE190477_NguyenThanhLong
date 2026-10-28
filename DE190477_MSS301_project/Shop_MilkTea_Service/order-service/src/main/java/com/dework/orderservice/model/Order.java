@@ -92,6 +92,11 @@ public class Order extends BaseEntity {
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "saga_status", nullable = false)
+    @Builder.Default
+    private SagaStatus sagaStatus = SagaStatus.PENDING;
+
     @Column(name = "cancel_reason")
     private String cancelReason;
 

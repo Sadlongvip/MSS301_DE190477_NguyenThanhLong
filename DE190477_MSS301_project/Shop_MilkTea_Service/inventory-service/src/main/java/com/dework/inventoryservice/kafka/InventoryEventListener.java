@@ -42,6 +42,7 @@ public class InventoryEventListener {
             }
         } catch (Exception e) {
             log.error("Lỗi khi xử lý message từ order-events: {}", e.getMessage(), e);
+            throw new RuntimeException("Lỗi xử lý Kafka order-events: " + e.getMessage(), e);
         }
     }
 
@@ -89,6 +90,7 @@ public class InventoryEventListener {
             }
         } catch (Exception e) {
             log.error("Lỗi khi xử lý message từ payment-events: {}", e.getMessage(), e);
+            throw new RuntimeException("Lỗi xử lý Kafka payment-events: " + e.getMessage(), e);
         }
     }
 }

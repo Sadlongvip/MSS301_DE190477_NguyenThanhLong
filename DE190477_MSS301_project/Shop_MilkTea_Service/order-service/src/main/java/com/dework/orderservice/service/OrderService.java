@@ -23,16 +23,23 @@ import com.dework.orderservice.repository.SagaLogRepository;
 import com.dework.orderservice.service.PriceVerificationService.VerifiedProductInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.dework.orderservice.model.SagaStatus;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.retry.RetryException;
+import org.springframework.core.retry.RetryPolicy;
+import org.springframework.core.retry.RetryTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -46,6 +53,18 @@ public class OrderService {
     private final PriceVerificationService priceVerificationService;
     private final OrderEventProducer orderEventProducer;
     private final SagaLogRepository sagaLogRepository;
+
+    @Value("${saga.demo.simulate-compensation-failure:false}")
+    private boolean simulateCompensationFailure;
+
+    // Spring Framework 7: RetryTemplate có sẵn trong spring-core (không cần thư viện spring-retry).
+    // maxRetries(2) = 1 lần chạy đầu + 2 lần thử lại = tối đa 3 lần, cách nhau 1 giây (chuẩn Slot 13 KB8).
+    private final RetryTemplate compensationRetry = new RetryTemplate(
+            RetryPolicy.builder()
+                    .includes(Exception.class)
+                    .maxRetries(2)
+                    .delay(Duration.ofSeconds(1))
+                    .build());
 
     private static final DateTimeFormatter ORDER_CODE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmmss");
 
@@ -109,6 +128,7 @@ public class OrderService {
                 .paymentMethod(paymentMethod)
                 .paymentStatus(PaymentStatus.UNPAID)
                 .status(OrderStatus.PENDING)
+                .sagaStatus(SagaStatus.EXECUTING)
                 .items(items)
                 .build();
 
@@ -261,6 +281,7 @@ public class OrderService {
 
         String cancelReason = (reason != null && !reason.isBlank()) ? reason.trim() : "Khách hàng yêu cầu hủy đơn";
         order.setStatus(OrderStatus.CANCELLED);
+        order.setSagaStatus(SagaStatus.COMPENSATED);
         order.setCancelReason(cancelReason);
 
         Order updated = orderRepository.save(order);
@@ -272,7 +293,142 @@ public class OrderService {
                 .reason(cancelReason)
                 .build());
 
+        logSaga(orderCode, "CANCEL_ORDER", "SUCCESS", "Đơn hàng đã hủy bởi người dùng/admin, gửi event bồi hoàn kho");
         return OrderResponse.from(updated);
+    }
+
+    /**
+     * Xử lý khi kho phản hồi thất bại (InventoryFailedEvent)
+     * Áp dụng cơ chế Compensation với Retry tối đa 3 lần (chuẩn Slot 13 KB8)
+     */
+    @Transactional
+    public void processInventoryFailed(String orderCode, String reason) {
+        Order order = findOrderByCode(orderCode);
+        order.setSagaStatus(SagaStatus.COMPENSATING);
+        orderRepository.save(order);
+        logSaga(orderCode, "RESERVE_INVENTORY", "FAILED", "Kho không thể đáp ứng: " + reason);
+
+        // Chạy bù trừ với Retry tối đa 3 lần (Slide 25 & Slot 13 KB8)
+        boolean allOk = runCompensationWithRetry(orderCode, () -> {
+            if (simulateCompensationFailure) {
+                throw new IllegalStateException("Giả lập lỗi mạng/dịch vụ trong quá trình bù trừ Saga (KB8)");
+            }
+        });
+
+        if (!allOk) {
+            // Giữ nguyên COMPENSATING để admin/job quét xử lý tiếp, KHÔNG báo CANCELLED/COMPENSATED giả
+            log.error("Compensation cho orderCode={} chưa xong sau 3 lần retry, dừng ở COMPENSATING để xử lý thủ công (EXT-4)", orderCode);
+            return;
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setSagaStatus(SagaStatus.COMPENSATED);
+        order.setCancelReason("Kho không thể đáp ứng: " + reason);
+        orderRepository.save(order);
+        logSaga(orderCode, "COMPENSATION", "CANCELLED", "Saga Rollback: Đơn hàng tự động hủy do kho thất bại");
+        log.info("Saga Rollback: Đơn hàng {} đã tự động hủy do kho không đủ hàng/ngưng bán. Lý do: {}", orderCode, reason);
+    }
+
+    /**
+     * Xử lý khi thanh toán online thất bại (PaymentFailedEvent)
+     * Bồi hoàn hoàn kho qua Kafka event với Retry tối đa 3 lần (chuẩn Slot 13 KB8)
+     */
+    @Transactional
+    public void processPaymentFailed(String orderCode, String reason) {
+        Order order = findOrderByCode(orderCode);
+        order.setSagaStatus(SagaStatus.COMPENSATING);
+        order.setPaymentStatus(PaymentStatus.FAILED);
+        orderRepository.save(order);
+        logSaga(orderCode, "PROCESS_PAYMENT", "FAILED", "Thanh toán thất bại: " + reason);
+
+        // Bù trừ kho: phát OrderCancelledEvent sang Kafka topic để inventory release kho
+        boolean allOk = runCompensationWithRetry(orderCode, () -> {
+            if (simulateCompensationFailure) {
+                throw new IllegalStateException("Giả lập lỗi mạng/dịch vụ trong quá trình bù trừ Saga (KB8)");
+            }
+            orderEventProducer.publishOrderCancelled(OrderCancelledEvent.builder()
+                    .orderCode(orderCode)
+                    .reason("Thanh toán thất bại: " + reason)
+                    .build());
+        });
+
+        if (!allOk) {
+            log.error("Compensation cho orderCode={} chưa xong sau 3 lần retry, dừng ở COMPENSATING để xử lý thủ công (EXT-4)", orderCode);
+            return;
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setSagaStatus(SagaStatus.COMPENSATED);
+        order.setCancelReason("Thanh toán thất bại: " + reason);
+        orderRepository.save(order);
+        logSaga(orderCode, "COMPENSATION", "CANCELLED", "Saga Rollback: Đơn hàng tự động hủy do thanh toán lỗi");
+        log.info("Saga Rollback: Đơn hàng {} đã tự động hủy do thanh toán lỗi: {}", orderCode, reason);
+    }
+
+    /**
+     * [EXT-4] Khôi phục Saga bị treo (dành cho KB8 và các sự cố mạng kéo dài)
+     * Thử bồi hoàn lại cho các đơn hàng có sagaStatus = COMPENSATING
+     */
+    @Transactional
+    public boolean recoverCompensation(String orderCode) {
+        Order order = findOrderByCode(orderCode);
+        if (order == null || order.getSagaStatus() == SagaStatus.COMPLETED || order.getSagaStatus() == SagaStatus.COMPENSATED) {
+            return false;
+        }
+
+        log.info("Bắt đầu quy trình khôi phục Saga (Recovery EXT-4) cho đơn hàng: {}", orderCode);
+        boolean allOk = runCompensationWithRetry(orderCode, () -> {
+            orderEventProducer.publishOrderCancelled(OrderCancelledEvent.builder()
+                    .orderCode(orderCode)
+                    .reason("Khôi phục bù trừ đơn hàng bị treo (EXT-4)")
+                    .build());
+        });
+
+        if (allOk) {
+            order.setStatus(OrderStatus.CANCELLED);
+            order.setSagaStatus(SagaStatus.COMPENSATED);
+            if (order.getCancelReason() == null || order.getCancelReason().isBlank()) {
+                order.setCancelReason("Đã khôi phục và hủy đơn thành công sau khi xử lý bù trừ");
+            }
+            orderRepository.save(order);
+            logSaga(orderCode, "CANCEL_ORDER", "SUCCESS", "Saga RECOVERED -> COMPENSATED");
+            log.info("Khôi phục Saga thành công cho đơn hàng: {}", orderCode);
+            return true;
+        } else {
+            log.warn("Khôi phục Saga cho đơn hàng {} chưa hoàn tất do lỗi trong quá trình bồi hoàn", orderCode);
+            return false;
+        }
+    }
+
+    /**
+     * Thực thi bồi hoàn với cơ chế tự động Retry tối đa 3 lần (Slot 13: 1 lần đầu + 2 lần thử lại)
+     * Ghi nhận chi tiết từng lần thất bại/thành công vào bảng SagaLog
+     */
+    public boolean runCompensationWithRetry(String orderCode, Runnable action) {
+        AtomicInteger attempt = new AtomicInteger();
+        try {
+            compensationRetry.execute(() -> {
+                int n = attempt.incrementAndGet();
+                try {
+                    action.run();
+                } catch (Exception ex) {
+                    logSaga(orderCode, "COMPENSATION", "FAILED", "Lần thứ " + n + ": " + ex.getMessage());
+                    throw ex; // Ném lại để RetryTemplate thực hiện thử lần tiếp theo
+                }
+                logSaga(orderCode, "COMPENSATION", "SUCCESS", "Lần thứ " + n);
+                return null;
+            });
+            return true;
+        } catch (RetryException ex) { // Đã hết số lần thử (3 lần)
+            return false;
+        }
+    }
+
+    @Transactional
+    public void updateSagaStatus(String orderCode, SagaStatus sagaStatus) {
+        Order order = findOrderByCode(orderCode);
+        order.setSagaStatus(sagaStatus);
+        orderRepository.save(order);
     }
 
     public Order findOrderByCode(String orderCode) {

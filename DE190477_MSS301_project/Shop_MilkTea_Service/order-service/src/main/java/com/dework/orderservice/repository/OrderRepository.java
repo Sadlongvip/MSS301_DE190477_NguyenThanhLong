@@ -3,6 +3,7 @@ package com.dework.orderservice.repository;
 import com.dework.orderservice.model.Order;
 import com.dework.orderservice.model.OrderStatus;
 import com.dework.orderservice.model.PaymentStatus;
+import com.dework.orderservice.model.SagaStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +20,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findByOrderCode(String orderCode);
 
     boolean existsByOrderCode(String orderCode);
+
+    List<Order> findBySagaStatus(SagaStatus sagaStatus);
 
     @Query("SELECT o FROM Order o WHERE o.user.id = :userId ORDER BY o.createdAt DESC")
     List<Order> findByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId);

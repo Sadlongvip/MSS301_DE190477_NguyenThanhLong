@@ -6,6 +6,7 @@ import com.dework.orderservice.dto.order.CreateOrderRequest;
 import com.dework.orderservice.dto.order.OrderResponse;
 import com.dework.orderservice.dto.order.UpdateOrderStatusRequest;
 import com.dework.orderservice.exception.ApiException;
+import com.dework.orderservice.model.Order;
 import com.dework.orderservice.model.OrderStatus;
 import com.dework.orderservice.model.PaymentStatus;
 import com.dework.orderservice.model.SagaLog;
@@ -17,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -109,5 +111,20 @@ public class OrderController {
         String role = (headerRole != null) ? headerRole : AuditContext.getCurrentUserRole();
         boolean isAdmin = "ADMIN".equalsIgnoreCase(role);
         return orderService.cancelOrder(orderCode, request.getReason(), userId, isAdmin);
+    }
+
+    /**
+     * [EXT-4] Admin API khôi phục Saga cho order bị treo (COMPENSATING) giống Slot 13
+     */
+    @PostMapping("/{orderCode}/compensate")
+    public ResponseEntity<?> compensateOrder(@PathVariable String orderCode) {
+        boolean recovered = orderService.recoverCompensation(orderCode);
+        Order order = orderService.findOrderByCode(orderCode);
+        return ResponseEntity.ok(Map.of(
+                "orderCode", orderCode,
+                "recovered", recovered,
+                "status", order.getStatus(),
+                "sagaStatus", order.getSagaStatus()
+        ));
     }
 }
