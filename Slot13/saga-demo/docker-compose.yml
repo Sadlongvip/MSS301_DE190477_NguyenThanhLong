@@ -49,8 +49,8 @@ services:
   mongodb:
     image: mongo:8.0
     container_name: saga-mongodb
-    mem_limit: 240m
-    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.1"]   # replica set, giới hạn cache 100MB
+    mem_limit: 380m
+    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.25"]   # WiredTiger yêu cầu tối thiểu 0.25GB (256MB)
     ports:
       - "27017:27017"
     volumes:
