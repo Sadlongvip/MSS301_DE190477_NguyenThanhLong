@@ -5,10 +5,11 @@ services:
   mysql:
     image: mysql:8.4
     container_name: saga-mysql
+    mem_limit: 180m
     command:
       - --performance-schema=OFF
-      - --innodb-buffer-pool-size=64M
-      - --max-connections=50
+      - --innodb-buffer-pool-size=24M
+      - --max-connections=30
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: orderdb
@@ -26,18 +27,19 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: saga-sqlserver
-    mem_limit: 1200m
+    mem_limit: 750m
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "Saga@12345"   # phải đủ mạnh: chữ hoa, thường, số, ký tự đặc biệt
       MSSQL_PID: "Developer"
+      MSSQL_MEMORY_LIMIT_MB: "700"      # Giới hạn nội tại SQL Server engine
     ports:
       - "14330:1433"           # host 14330 để không đụng SQL Server cài sẵn trên máy
     volumes:
       - mssql-data:/var/opt/mssql
     healthcheck:
-      # Vừa kiểm tra SQL Server sẵn sàng, vừa tạo database paymentdb nếu chưa có
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Saga@12345' -C -Q \"IF DB_ID('paymentdb') IS NULL CREATE DATABASE paymentdb\" || exit 1"]
+      # Vừa kiểm tra SQL Server sẵn sàng, vừa tạo DB paymentdb và giới hạn max server memory đệm 400MB
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Saga@12345' -C -Q \"IF DB_ID('paymentdb') IS NULL CREATE DATABASE paymentdb; EXEC sp_configure 'show advanced options', 1; RECONFIGURE; EXEC sp_configure 'max server memory (MB)', 400; RECONFIGURE;\" || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -47,7 +49,8 @@ services:
   mongodb:
     image: mongo:8.0
     container_name: saga-mongodb
-    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.25"]   # transaction trong MongoDB cần replica set, giới hạn cache 256MB
+    mem_limit: 240m
+    command: ["--replSet", "rs0", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.1"]   # replica set, giới hạn cache 100MB
     ports:
       - "27017:27017"
     volumes:
@@ -64,11 +67,12 @@ services:
   inventory-service:
     build: ./inventory-service
     container_name: inventory-service
+    mem_limit: 240m
     ports:
       - "8082:8082"
     environment:
       MONGO_URI: mongodb://mongodb:27017/inventorydb?directConnection=true
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseSerialGC"
+      JAVA_TOOL_OPTIONS: "-Xms48m -Xmx128m -Xss256k -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC"
     depends_on:
       mongodb:
         condition: service_healthy
@@ -76,46 +80,31 @@ services:
   payment-service:
     build: ./payment-service
     container_name: payment-service
+    mem_limit: 240m
     ports:
       - "8083:8083"
     environment:
       DB_URL: jdbc:sqlserver://sqlserver:1433;databaseName=paymentdb;encrypt=true;trustServerCertificate=true
       DB_USER: sa
       DB_PASSWORD: Saga@12345
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseSerialGC"
+      JAVA_TOOL_OPTIONS: "-Xms48m -Xmx128m -Xss256k -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC"
     depends_on:
       sqlserver:
         condition: service_healthy
 
-  # ---------- shipping-service DB (EXT-1) ----------
-  postgres:
-    image: postgres:16-alpine
-    container_name: saga-postgres
-    environment:
-      POSTGRES_DB: shippingdb
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d shippingdb"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-
   # ---------- shipping-service (EXT-1) ----------
+  # Lưu ý: shipping-service dùng MySQL (database shippingdb), không dùng PostgreSQL
   shipping-service:
     build: ./shipping-service
     container_name: shipping-service
+    mem_limit: 240m
     ports:
       - "8084:8084"
     environment:
       DB_URL: jdbc:mysql://mysql:3306/shippingdb?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false
       DB_USER: root
       DB_PASSWORD: root
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseSerialGC"
+      JAVA_TOOL_OPTIONS: "-Xms48m -Xmx128m -Xss256k -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC"
     depends_on:
       mysql:
         condition: service_healthy
@@ -124,6 +113,7 @@ services:
   kafka:
     image: apache/kafka:latest
     container_name: saga-kafka
+    mem_limit: 280m
     ports:
       - "9092:9092"
     environment:
@@ -138,11 +128,12 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_HEAP_OPTS: "-Xmx256m -Xms128m"
+      KAFKA_HEAP_OPTS: "-Xms64m -Xmx160m"
 
   order-service:
     build: ./order-service
     container_name: order-service
+    mem_limit: 240m
     ports:
       - "8081:8081"
     environment:
@@ -153,7 +144,7 @@ services:
       PAYMENT_URL: http://payment-service:8083
       SHIPPING_URL: http://shipping-service:8084
       PAYMENT_DELAY_MS: ${PAYMENT_DELAY_MS:-0}      # chỉ dùng cho KB8
-      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx256m -XX:+UseSerialGC"
+      JAVA_TOOL_OPTIONS: "-Xms48m -Xmx128m -Xss256k -XX:MaxMetaspaceSize=96m -XX:ReservedCodeCacheSize=32m -XX:+UseSerialGC"
     depends_on:
       mysql:
         condition: service_healthy
@@ -168,4 +159,3 @@ volumes:
   mysql-data:
   mssql-data:
   mongo-data:
-  postgres-data:
