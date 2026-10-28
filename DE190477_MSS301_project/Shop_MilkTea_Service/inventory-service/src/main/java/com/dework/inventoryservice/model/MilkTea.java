@@ -30,7 +30,8 @@ public class MilkTea extends BaseEntity {
 
     private String description;
 
-    private double price;
+    @Builder.Default
+    private Double price = 0.0;
 
     private String image;
 
@@ -43,4 +44,8 @@ public class MilkTea extends BaseEntity {
     @ManyToOne
     @JoinColumn(name = "category_id")
     private CategoryTea category;
+
+    public Double getPrice() {
+        return price != null ? price : 0.0;
+    }
 }

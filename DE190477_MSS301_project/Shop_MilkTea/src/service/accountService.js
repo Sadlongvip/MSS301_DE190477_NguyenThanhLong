@@ -48,6 +48,16 @@ const accountService = {
   deleteAccount: (id) => {
     return axiosClient.delete(`/api/accounts/${id}`);
   },
+
+  /**
+   * Đổi mật khẩu tài khoản
+   * @param {number|string} id
+   * @param {string} newPassword
+   * @returns {Promise<Object>}
+   */
+  changePassword: (id, newPassword) => {
+    return axiosClient.put(`/api/accounts/${id}/password`, { password: newPassword });
+  },
 };
 
 export default accountService;

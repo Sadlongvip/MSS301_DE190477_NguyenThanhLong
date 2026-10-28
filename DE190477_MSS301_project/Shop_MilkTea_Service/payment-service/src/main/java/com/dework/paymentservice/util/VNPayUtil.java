@@ -38,6 +38,9 @@ public final class VNPayUtil {
         }
     }
 
+    /**
+     * Nối chuỗi các tham số đã URL-encode theo thứ tự alphabet (Chuẩn Java của VNPay).
+     */
     public static String hashAllFields(Map<String, String> fields) {
         List<String> fieldNames = new ArrayList<>(fields.keySet());
         Collections.sort(fieldNames);
@@ -46,12 +49,35 @@ public final class VNPayUtil {
         while (itr.hasNext()) {
             String fieldName = itr.next();
             String fieldValue = fields.get(fieldName);
-            if ((fieldValue != null) && (!fieldValue.isEmpty())) {
+            if (fieldValue != null && !fieldValue.isEmpty()) {
                 sb.append(fieldName);
-                sb.append("=");
+                sb.append('=');
                 sb.append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
                 if (itr.hasNext()) {
-                    sb.append("&");
+                    sb.append('&');
+                }
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Xây dựng query string cho URL chuyển hướng (Các giá trị được encode US-ASCII).
+     */
+    public static String buildQueryUrl(Map<String, String> fields) {
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder sb = new StringBuilder();
+        Iterator<String> itr = fieldNames.iterator();
+        while (itr.hasNext()) {
+            String fieldName = itr.next();
+            String fieldValue = fields.get(fieldName);
+            if (fieldValue != null && !fieldValue.isEmpty()) {
+                sb.append(URLEncoder.encode(fieldName, StandardCharsets.US_ASCII))
+                  .append('=')
+                  .append(URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII));
+                if (itr.hasNext()) {
+                    sb.append('&');
                 }
             }
         }

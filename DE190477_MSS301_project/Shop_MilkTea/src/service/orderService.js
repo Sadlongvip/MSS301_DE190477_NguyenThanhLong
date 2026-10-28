@@ -43,6 +43,15 @@ const orderService = {
   },
 
   /**
+   * Alias: Xem chi tiết đơn hàng theo mã đơn
+   * @param {string} orderCode
+   * @returns {Promise<any>}
+   */
+  getOrderDetail: (orderCode) => {
+    return axiosClient.get(`/api/orders/${orderCode}`);
+  },
+
+  /**
    * Hủy đơn hàng
    * @param {string} orderCode
    * @param {string} [reason]
@@ -50,6 +59,41 @@ const orderService = {
    */
   cancelOrder: (orderCode, reason) => {
     return axiosClient.put(`/api/orders/${orderCode}/cancel`, { reason });
+  },
+
+  /* ================= ADMIN ORDER MANAGEMENT ================= */
+  /**
+   * Lấy danh sách toàn bộ đơn hàng có lọc và phân trang (Dành cho Admin)
+   * @param {{ status?: string, paymentStatus?: string, keyword?: string, page?: number, size?: number }} [params]
+   */
+  searchOrders: (params = {}) => {
+    return axiosClient.get('/api/orders', { params });
+  },
+
+  /**
+   * Cập nhật trạng thái đơn hàng (Dành cho Admin)
+   * @param {string} orderCode
+   * @param {{ status: string, note?: string }} data
+   */
+  updateOrderStatus: (orderCode, data) => {
+    return axiosClient.put(`/api/orders/${orderCode}/status`, data);
+  },
+
+  /**
+   * Cập nhật trạng thái thanh toán (Dành cho Admin)
+   * @param {string} orderCode
+   * @param {string} paymentStatus
+   */
+  updatePaymentStatus: (orderCode, paymentStatus) => {
+    return axiosClient.put(`/api/orders/${orderCode}/payment-status`, { paymentStatus });
+  },
+
+  /**
+   * Lấy lịch sử sự kiện Saga (Saga Choreography Logs) của đơn hàng
+   * @param {string} orderCode
+   */
+  getSagaLogs: (orderCode) => {
+    return axiosClient.get(`/api/orders/${orderCode}/saga-logs`);
   },
 };
 

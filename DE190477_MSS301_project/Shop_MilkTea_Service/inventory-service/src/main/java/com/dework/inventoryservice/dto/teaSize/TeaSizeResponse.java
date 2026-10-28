@@ -15,7 +15,7 @@ public class TeaSizeResponse {
     private Long id;
     private String name;
     private String code;
-    private double extraPrice;
+    private Double extraPrice;
     private Boolean isDefault;
     private Boolean isAvailable;
 

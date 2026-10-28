@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Offcanvas, Button, Badge, Form, InputGroup, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import useCart from '../../hook/useCart';
+import { DEFAULT_TEA_IMAGE } from '../../constant/landingData';
 
 /**
  * CartDrawer - Ngăn kéo xem giỏ hàng phong cách Offcanvas
@@ -22,13 +23,19 @@ export function CartDrawer({
   const onUpdateQuantity = propUpdateQuantity || cartContext.updateQuantity;
   const onRemoveItem = propRemoveItem || cartContext.removeItem;
   const onClearCart = propClearCart || cartContext.clearCart;
+  const lastCompletedOrder = cartContext.lastCompletedOrder;
+  const clearLastCompletedOrder = cartContext.clearLastCompletedOrder;
 
-  const [orderSuccess, setOrderSuccess] = useState(false);
-
-  // Tính tạm tính & phí ship
-  const subTotal = cartItems.reduce((sum, item) => sum + (item.totalPrice || item.price * item.quantity), 0);
-  const shippingFee = subTotal > 120000 || cartItems.length === 0 ? 0 : 20000;
-  const finalTotal = subTotal + shippingFee;
+  // Tính tạm tính & phí ship theo context
+  const subTotal = cartContext.subTotal !== undefined
+    ? cartContext.subTotal
+    : cartItems.reduce((sum, item) => sum + (item.totalPrice || item.price * item.quantity), 0);
+  const shippingFee = cartContext.shippingFee !== undefined
+    ? cartContext.shippingFee
+    : (subTotal >= 120000 || cartItems.length === 0 ? 0 : 20000);
+  const finalTotal = cartContext.finalTotal !== undefined
+    ? cartContext.finalTotal
+    : (subTotal + shippingFee);
 
   const handleCheckout = () => {
     if (cartItems.length === 0) return;
@@ -39,6 +46,16 @@ export function CartDrawer({
   const handleGoToCartPage = () => {
     onHide();
     navigate('/cart');
+  };
+
+  const handleContinueShopping = () => {
+    if (clearLastCompletedOrder) clearLastCompletedOrder();
+    onHide();
+  };
+
+  const handleViewOrder = () => {
+    onHide();
+    navigate('/orders');
   };
 
   return (
@@ -56,15 +73,100 @@ export function CartDrawer({
       </Offcanvas.Header>
 
       <Offcanvas.Body className="d-flex flex-column p-0">
-        {orderSuccess ? (
-          <div className="p-4 text-center my-auto">
-            <div className="text-success mb-3" style={{ fontSize: '3.5rem' }}>
-              <i className="bi bi-check-circle-fill"></i>
+        {lastCompletedOrder ? (
+          <div className="p-4 d-flex flex-column my-auto">
+            <div className="text-center mb-3">
+              <div className="text-success mb-2" style={{ fontSize: '3.2rem' }}>
+                <i className="bi bi-check-circle-fill"></i>
+              </div>
+              <h4 className="fw-bold text-success mb-1">Đặt Hàng Thành Công!</h4>
+              <p className="text-muted small mb-0">
+                Đơn hàng của bạn đã được ghi nhận và chuyển tới quầy pha chế.
+              </p>
             </div>
-            <h4 className="fw-bold text-success mb-2">Đặt Hàng Thành Công!</h4>
-            <p className="text-muted small">
-              Đơn hàng của bạn đã được chuyển đến quầy pha chế. Shipper sẽ giao tới bạn trong vòng 30 phút nhé!
-            </p>
+
+            {/* Khối chi tiết đơn hàng vừa đặt */}
+            <div className="bg-light p-3 rounded-4 border mb-3 small">
+              <div className="d-flex justify-content-between align-items-center pb-2 border-bottom mb-2">
+                <span className="text-muted">Mã đơn hàng:</span>
+                <span className="fw-bold text-dark badge bg-warning text-dark px-2.5 py-1">
+                  #{lastCompletedOrder.orderCode || 'ORD-SUCCESS'}
+                </span>
+              </div>
+
+              {lastCompletedOrder.customerName && (
+                <div className="d-flex justify-content-between text-muted mb-1.5">
+                  <span>Khách nhận:</span>
+                  <span className="fw-semibold text-dark">{lastCompletedOrder.customerName}</span>
+                </div>
+              )}
+
+              {lastCompletedOrder.shippingAddress && (
+                <div className="d-flex justify-content-between text-muted mb-2">
+                  <span>Địa chỉ giao:</span>
+                  <span className="fw-semibold text-dark text-end" style={{ maxWidth: '210px' }}>
+                    {lastCompletedOrder.shippingAddress}
+                  </span>
+                </div>
+              )}
+
+              <div className="d-flex justify-content-between text-muted mb-1.5">
+                <span>Tạm tính tiền món:</span>
+                <span className="fw-semibold text-dark">
+                  {Number(lastCompletedOrder.subtotal || 0).toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+
+              {/* Số tiền ship hiển thị thực tế khi đặt hàng xong */}
+              <div className="d-flex justify-content-between align-items-center mb-1.5 py-1 bg-white px-2 rounded-3 border border-success-subtle">
+                <span className="fw-semibold text-dark d-flex align-items-center gap-1">
+                  <i className="bi bi-truck text-success"></i>
+                  <span>Phí vận chuyển:</span>
+                </span>
+                <span>
+                  {Number(lastCompletedOrder.shippingFee || 0) === 0 ? (
+                    <Badge bg="success" className="px-2 py-1">Miễn phí (0đ)</Badge>
+                  ) : (
+                    <strong className="text-dark">
+                      {Number(lastCompletedOrder.shippingFee).toLocaleString('vi-VN')} đ
+                    </strong>
+                  )}
+                </span>
+              </div>
+
+              {lastCompletedOrder.discountAmount > 0 && (
+                <div className="d-flex justify-content-between text-success mb-1.5">
+                  <span>Giảm giá:</span>
+                  <span>-{Number(lastCompletedOrder.discountAmount).toLocaleString('vi-VN')} đ</span>
+                </div>
+              )}
+
+              <div className="d-flex justify-content-between align-items-center pt-2 border-top mt-2 fw-bold">
+                <span className="text-dark fs-6">Tổng thanh toán:</span>
+                <span className="text-danger fs-5">
+                  {Number(lastCompletedOrder.totalAmount || 0).toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+            </div>
+
+            {/* Nút tác vụ sau khi đặt hàng */}
+            <div className="d-flex flex-column gap-2 mt-auto">
+              <Button
+                variant="success"
+                onClick={handleViewOrder}
+                className="w-100 py-2.5 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+              >
+                <i className="bi bi-receipt"></i>
+                <span>Xem Lịch Sử Đơn Hàng</span>
+              </Button>
+              <Button
+                variant="outline-secondary"
+                onClick={handleContinueShopping}
+                className="w-100 py-2 rounded-pill small fw-semibold"
+              >
+                Tiếp Tục Đặt Món Mới
+              </Button>
+            </div>
           </div>
         ) : cartItems.length === 0 ? (
           <div className="p-4 text-center my-auto">
@@ -83,6 +185,7 @@ export function CartDrawer({
               Xem Thực Đơn Ngay
             </Button>
           </div>
+
         ) : (
           <>
             {/* Danh sách các món trong giỏ */}
@@ -93,10 +196,14 @@ export function CartDrawer({
                   className="p-3 rounded-4 bg-light border d-flex gap-3 position-relative"
                 >
                   <img
-                    src={item.image}
+                    src={item.image || DEFAULT_TEA_IMAGE}
                     alt={item.name}
                     className="rounded-3 object-fit-cover"
                     style={{ width: '70px', height: '70px' }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = DEFAULT_TEA_IMAGE;
+                    }}
                   />
                   <div className="flex-grow-1">
                     <div className="d-flex justify-content-between align-items-start pr-3">

@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderStatusDistributionDto {
     private String status;
-    private long count;
-    private double percentage;
+    private Long count;
+    private Double percentage;
 }

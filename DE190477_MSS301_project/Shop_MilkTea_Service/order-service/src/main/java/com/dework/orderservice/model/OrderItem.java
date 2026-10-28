@@ -36,13 +36,15 @@ public class OrderItem {
 
     @Column(name = "quantity", nullable = false)
     @Builder.Default
-    private int quantity = 1;
+    private Integer quantity = 1;
 
     @Column(name = "unit_price", nullable = false)
-    private double unitPrice;
+    @Builder.Default
+    private Double unitPrice = 0.0;
 
     @Column(name = "total_price", nullable = false)
-    private double totalPrice;
+    @Builder.Default
+    private Double totalPrice = 0.0;
 
     @Column(name = "image")
     private String image;
@@ -65,4 +67,16 @@ public class OrderItem {
     @Column(name = "updated_by")
     @Builder.Default
     private String updatedBy = "SYSTEM";
+
+    public Integer getQuantity() {
+        return quantity != null ? quantity : 1;
+    }
+
+    public Double getUnitPrice() {
+        return unitPrice != null ? unitPrice : 0.0;
+    }
+
+    public Double getTotalPrice() {
+        return totalPrice != null ? totalPrice : 0.0;
+    }
 }

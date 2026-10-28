@@ -50,16 +50,20 @@ public class ReportOrder {
     private String note;
 
     @Column(name = "subtotal", nullable = false)
-    private double subtotal;
+    @Builder.Default
+    private Double subtotal = 0.0;
 
     @Column(name = "shipping_fee", nullable = false)
-    private double shippingFee;
+    @Builder.Default
+    private Double shippingFee = 0.0;
 
     @Column(name = "discount_amount", nullable = false)
-    private double discountAmount;
+    @Builder.Default
+    private Double discountAmount = 0.0;
 
     @Column(name = "total_amount", nullable = false)
-    private double totalAmount;
+    @Builder.Default
+    private Double totalAmount = 0.0;
 
     @Column(name = "voucher_code")
     private String voucherCode;

@@ -67,12 +67,12 @@ export function HeroSection({ onOpenCart }) {
                 <span>Xem Thực Đơn Ngay</span>
               </Button>
               <Button
-                href="#promo"
+                href="#why-us"
                 variant="outline-secondary"
                 className="btn-tea-secondary px-4 py-3 fs-6 d-flex align-items-center gap-2"
               >
-                <i className="bi bi-ticket-perforated fs-5"></i>
-                <span>Săn Voucher 25k</span>
+                <i className="bi bi-stars fs-5"></i>
+                <span>Vì Sao Chọn Chúng Tôi</span>
               </Button>
             </div>
 
@@ -108,7 +108,7 @@ export function HeroSection({ onOpenCart }) {
                 }}
               >
                 <img
-                  src="https://images.unsplash.com/photo-1558857563-b371f31ca910?w=800&auto=format&fit=crop&q=80"
+                  src="https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=800&auto=format&fit=crop&q=80"
                   alt="Trà sữa trân châu hoàng kim"
                   className="w-100 h-100 object-fit-cover"
                 />

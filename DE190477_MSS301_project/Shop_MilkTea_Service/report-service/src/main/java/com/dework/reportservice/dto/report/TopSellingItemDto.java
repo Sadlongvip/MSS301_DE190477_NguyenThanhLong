@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class TopSellingItemDto {
     private Long milkTeaId;
     private String milkTeaName;
-    private long totalQuantitySold;
-    private double totalRevenue;
+    private Long totalQuantitySold;
+    private Double totalRevenue;
     private String image;
 }

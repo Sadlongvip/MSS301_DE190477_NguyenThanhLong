@@ -53,7 +53,7 @@ export function Footer() {
             <ul className="list-unstyled small d-flex flex-column gap-2 mb-0">
               <li><a href="#home" className="text-secondary text-decoration-none hover-white">Trang Chủ</a></li>
               <li><a href="#menu" className="text-secondary text-decoration-none hover-white">Menu Trà Sữa</a></li>
-              <li><a href="#promo" className="text-secondary text-decoration-none hover-white">Mã Khuyến Mãi</a></li>
+              <li><a href="/cart" className="text-secondary text-decoration-none hover-white">Giỏ Hàng</a></li>
               <li><a href="#about" className="text-secondary text-decoration-none hover-white">Về Chúng Tôi</a></li>
               <li><a href="#reviews" className="text-secondary text-decoration-none hover-white">Đánh Giá Khách Hàng</a></li>
             </ul>

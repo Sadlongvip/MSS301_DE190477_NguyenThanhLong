@@ -9,6 +9,7 @@ import com.dework.orderservice.model.OrderStatus;
 import com.dework.orderservice.model.PaymentMethod;
 import com.dework.orderservice.model.PaymentStatus;
 import com.dework.orderservice.repository.OrderRepository;
+import com.dework.orderservice.service.OrderService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OrderEventListener {
 
     private final OrderRepository orderRepository;
+    private final OrderService orderService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -49,6 +51,8 @@ public class OrderEventListener {
                 order.setStatus(OrderStatus.CANCELLED);
                 order.setCancelReason("Kho không thể đáp ứng: " + failedEvent.getReason());
                 orderRepository.save(order);
+                orderService.logSaga(orderCode, "RESERVE_INVENTORY", "FAILED", "Kho không thể đáp ứng: " + failedEvent.getReason());
+                orderService.logSaga(orderCode, "COMPENSATION", "CANCELLED", "Saga Rollback: Đơn hàng tự động hủy do kho thất bại");
                 log.info("Saga Rollback: Đơn hàng {} đã tự động hủy do kho không đủ hàng/ngưng bán. Lý do: {}", orderCode, failedEvent.getReason());
             } else {
                 // Kho giữ hàng thành công (InventoryReservedEvent)
@@ -56,8 +60,11 @@ public class OrderEventListener {
                 if (order.getPaymentMethod() == PaymentMethod.COD) {
                     order.setStatus(OrderStatus.CONFIRMED);
                     orderRepository.save(order);
+                    orderService.logSaga(orderCode, "RESERVE_INVENTORY", "SUCCESS", "Kho đã giữ hàng thành công (COD)");
+                    orderService.logSaga(orderCode, "SAGA_COMPLETED", "CONFIRMED", "Đơn hàng COD được xác nhận thành công");
                     log.info("Saga Happy Path (COD): Kho đã giữ hàng thành công, đơn hàng {} được xác nhận CONFIRMED", orderCode);
                 } else {
+                    orderService.logSaga(orderCode, "RESERVE_INVENTORY", "SUCCESS", "Kho đã giữ hàng thành công, tiếp tục chờ thanh toán online...");
                     log.info("Saga Progression: Kho đã giữ hàng thành công cho đơn {}, tiếp tục chờ thanh toán online...", orderCode);
                 }
             }
@@ -91,12 +98,16 @@ public class OrderEventListener {
                 order.setPaymentStatus(PaymentStatus.FAILED);
                 order.setCancelReason("Thanh toán thất bại: " + failedEvent.getReason());
                 orderRepository.save(order);
+                orderService.logSaga(orderCode, "PROCESS_PAYMENT", "FAILED", "Thanh toán thất bại: " + failedEvent.getReason());
+                orderService.logSaga(orderCode, "COMPENSATION", "CANCELLED", "Saga Rollback: Đơn hàng tự động hủy do thanh toán lỗi");
                 log.info("Saga Rollback: Đơn hàng {} đã tự động hủy do thanh toán lỗi: {}", orderCode, failedEvent.getReason());
             } else {
                 // Thanh toán thành công (PaymentSuccessEvent)
                 order.setStatus(OrderStatus.CONFIRMED);
                 order.setPaymentStatus(PaymentStatus.PAID);
                 orderRepository.save(order);
+                orderService.logSaga(orderCode, "PROCESS_PAYMENT", "SUCCESS", "Thanh toán online thành công");
+                orderService.logSaga(orderCode, "SAGA_COMPLETED", "CONFIRMED", "Đơn hàng hoàn tất chuỗi Saga thành công");
                 log.info("Saga Happy Path: Thanh toán thành công cho đơn hàng {}, trạng thái chuyển sang CONFIRMED và PAID", orderCode);
             }
         } catch (Exception e) {

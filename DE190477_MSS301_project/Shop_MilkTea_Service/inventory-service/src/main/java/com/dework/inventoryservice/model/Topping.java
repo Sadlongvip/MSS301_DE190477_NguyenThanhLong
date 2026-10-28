@@ -26,8 +26,13 @@ public class Topping extends BaseEntity {
 
     private String name;
 
-    private double price;
+    @Builder.Default
+    private Double price = 0.0;
 
     @Builder.Default
     private Boolean isAvailable = true;
+
+    public Double getPrice() {
+        return price != null ? price : 0.0;
+    }
 }

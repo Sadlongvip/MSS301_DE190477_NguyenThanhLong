@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DashboardSummaryDto {
-    private long totalOrders;
-    private double totalRevenue;
-    private long completedOrders;
-    private long cancelledOrders;
-    private long pendingOrders;
-    private double averageOrderValue;
-    private double totalDiscountAmount;
+    private Long totalOrders;
+    private Double totalRevenue;
+    private Long completedOrders;
+    private Long cancelledOrders;
+    private Long pendingOrders;
+    private Double averageOrderValue;
+    private Double totalDiscountAmount;
 }

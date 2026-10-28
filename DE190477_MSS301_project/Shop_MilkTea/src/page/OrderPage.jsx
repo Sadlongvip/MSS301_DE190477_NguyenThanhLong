@@ -107,28 +107,29 @@ export function OrderPage() {
             </div>
 
             <div className="d-flex align-items-center gap-2 flex-wrap">
-              {/* Ô tìm kiếm đơn hàng */}
-              <InputGroup style={{ maxWidth: '320px' }}>
-                <InputGroup.Text className="bg-white border-end-0 rounded-start-pill text-muted">
+              {/* Ô tìm kiếm đơn hàng - Khung liền khối chống lỗi viền */}
+              <div className="unified-input-group rounded-pill shadow-sm bg-white" style={{ maxWidth: '320px' }}>
+                <span className="unified-input-icon">
                   <i className="bi bi-search"></i>
-                </InputGroup.Text>
-                <Form.Control
+                </span>
+                <input
                   type="text"
                   placeholder="Tìm mã đơn hoặc tên món..."
                   value={searchKeyword}
                   onChange={(e) => setSearchKeyword(e.target.value)}
-                  className="border-start-0 rounded-end-pill small shadow-none"
+                  className="unified-input-control"
                 />
                 {searchKeyword && (
-                  <Button
-                    variant="link"
-                    className="position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none z-3 pe-3"
+                  <button
+                    type="button"
+                    className="unified-input-btn text-muted"
                     onClick={() => setSearchKeyword('')}
+                    title="Xóa tìm kiếm"
                   >
-                    <i className="bi bi-x"></i>
-                  </Button>
+                    <i className="bi bi-x-circle-fill"></i>
+                  </button>
                 )}
-              </InputGroup>
+              </div>
 
               {/* Nút Làm mới danh sách */}
               <Button

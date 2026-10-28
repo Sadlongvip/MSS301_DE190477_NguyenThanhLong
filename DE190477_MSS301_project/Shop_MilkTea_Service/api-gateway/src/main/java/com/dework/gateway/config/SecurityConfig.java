@@ -46,21 +46,23 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/milkteas/**", "/api/toppings/**", "/api/sizes/**").permitAll()
                         .requestMatchers("/api/carts", "/api/carts/**").permitAll()
                         .requestMatchers("/api/payments/vnpay-ipn").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/orders/*/saga-logs").permitAll()
 
                         // ---------- customer-service (Account Management) ----------
                         .requestMatchers("/api/accounts/me", "/api/accounts/me/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/accounts/**").hasRole("ADMIN")
 
                         // ---------- payment-service ----------
-                        .requestMatchers(HttpMethod.POST, "/api/payments/create").hasAnyRole("CUSTOMER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/payments/*/status").hasAnyRole("CUSTOMER", "ADMIN")
-                        .requestMatchers("/api/payments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/payments/create").hasAnyRole("CUSTOMER", "ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/payments/*/status").hasAnyRole("CUSTOMER", "ADMIN", "STAFF")
+                        .requestMatchers("/api/payments/**").hasAnyRole("ADMIN", "STAFF")
 
                         // ---------- order-service / inventory-service (Quản trị sản phẩm, đơn hàng) ----------
-                        .requestMatchers(HttpMethod.POST, "/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/orders/my", "/api/orders/my/**").hasAnyRole("CUSTOMER", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").hasAnyRole("CUSTOMER", "ADMIN")
-                        .requestMatchers("/api/orders/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/orders/**").hasAnyRole("CUSTOMER", "ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/my", "/api/orders/my/**").hasAnyRole("CUSTOMER", "ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.GET, "/api/orders/*").hasAnyRole("CUSTOMER", "ADMIN", "STAFF")
+                        .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").hasAnyRole("CUSTOMER", "ADMIN", "STAFF")
+                        .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
                         .requestMatchers("/api/products/**", "/api/categories/**", "/api/milkteas/**", "/api/toppings/**", "/api/sizes/**").hasRole("ADMIN")
 
                         // ---------- report-service (Báo cáo Thống kê - Chỉ dành cho ADMIN) ----------

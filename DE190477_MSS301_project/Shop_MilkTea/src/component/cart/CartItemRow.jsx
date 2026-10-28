@@ -1,5 +1,6 @@
 import React from 'react';
 import { Badge, Button } from 'react-bootstrap';
+import { DEFAULT_TEA_IMAGE } from '../../constant/landingData';
 
 /**
  * Component hiển thị một món đồ uống trong giỏ hàng
@@ -14,10 +15,14 @@ export function CartItemRow({ item, index, onUpdateQuantity, onRemoveItem }) {
       {/* 1. Ảnh món */}
       <div className="position-relative flex-shrink-0 align-self-start align-self-sm-center">
         <img
-          src={item.image}
+          src={item.image || DEFAULT_TEA_IMAGE}
           alt={item.name}
           className="rounded-4 object-fit-cover shadow-sm cart-item-img"
           style={{ width: '88px', height: '88px' }}
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = DEFAULT_TEA_IMAGE;
+          }}
         />
         {item.size && (
           <span

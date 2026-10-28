@@ -39,7 +39,8 @@ public class PaymentTransaction extends BaseEntity {
     private Long userId;
 
     @Column(name = "amount", nullable = false)
-    private double amount;
+    @Builder.Default
+    private Double amount = 0.0;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", nullable = false, length = 32)

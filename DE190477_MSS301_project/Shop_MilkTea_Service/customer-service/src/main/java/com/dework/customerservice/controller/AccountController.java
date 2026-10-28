@@ -47,6 +47,11 @@ public class AccountController {
         return accountService.updateAccount(id, request);
     }
 
+    @PutMapping("/{id}/password")
+    public AccountResponse changePassword(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        return accountService.changePassword(id, body.get("password"));
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteAccount(@PathVariable Long id) {

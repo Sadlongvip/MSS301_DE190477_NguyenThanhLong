@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Toast, ToastContainer } from 'react-bootstrap';
 import { MainLayout } from '../layout';
 import HeroSection from '../component/landing/HeroSection';
-import PromoBanner from '../component/landing/PromoBanner';
 import FeaturedMenu from '../component/landing/FeaturedMenu';
 import WhyChooseUs from '../component/landing/WhyChooseUs';
 import Testimonials from '../component/landing/Testimonials';
@@ -56,8 +55,6 @@ export function LandingPage() {
       {/* 1. Hero Section */}
       <HeroSection onOpenCart={() => setIsCartOpen(true)} />
 
-      {/* 2. Voucher & Khuyến Mãi */}
-      <PromoBanner onOpenCart={() => setIsCartOpen(true)} />
 
       {/* 3. Menu Món Nổi Bật */}
       <FeaturedMenu

@@ -13,6 +13,10 @@ public class ToppingClientDto {
 
     private Long id;
     private String name;
-    private double price;
+    private Double price;
+
+    public double getPrice() {
+        return price != null ? price : 0.0;
+    }
     private Boolean isAvailable;
 }

@@ -14,7 +14,7 @@ public class CategoryTeaResponse {
 
     private Long id;
     private String name;
-    private int milkTeaCount;
+    private Integer milkTeaCount;
 
     public static CategoryTeaResponse from(CategoryTea category) {
         if (category == null) {

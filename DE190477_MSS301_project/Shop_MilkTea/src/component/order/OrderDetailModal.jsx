@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Modal, Button, Badge, Row, Col, Table } from 'react-bootstrap';
 import {
   ORDER_STATUS_CONFIG,
@@ -9,12 +10,13 @@ import {
 } from '../../util/orderUtils';
 
 const DEFAULT_IMAGE =
-  'https://images.unsplash.com/photo-1558857563-b37cfb8cb468?auto=format&fit=crop&w=300&q=80';
+  'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=300&auto=format&fit=crop&q=80';
 
 /**
  * OrderDetailModal - Modal hiển thị toàn diện thông tin chi tiết một đơn hàng
  */
 export function OrderDetailModal({ show, onHide, order, onCancelOrder, onReorder }) {
+  const navigate = useNavigate();
   if (!order) return null;
 
   const statusCfg = ORDER_STATUS_CONFIG[order.status] || {
@@ -251,6 +253,21 @@ export function OrderDetailModal({ show, onHide, order, onCancelOrder, onReorder
         </Button>
 
         <div className="d-flex gap-2">
+          {/* Nút Quét QR nếu là đơn VNPay chưa thanh toán */}
+          {!isCancelled && order.paymentMethod === 'VNPAY' && order.paymentStatus !== 'PAID' && (
+            <Button
+              variant="warning"
+              className="rounded-pill px-4 fw-bold text-dark d-inline-flex align-items-center gap-1.5 shadow-sm"
+              onClick={() => {
+                onHide();
+                navigate(`/payment/${order.orderCode}`);
+              }}
+            >
+              <i className="bi bi-qr-code-scan"></i>
+              <span>Quét QR Thanh Toán</span>
+            </Button>
+          )}
+
           {/* Nút Hủy đơn nếu còn PENDING */}
           {isPending && (
             <Button

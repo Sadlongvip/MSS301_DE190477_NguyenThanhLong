@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class DailyRevenueDto {
     private String reportDate;
-    private double revenue;
-    private long totalOrders;
-    private long completedOrders;
-    private long cancelledOrders;
+    private Double revenue;
+    private Long totalOrders;
+    private Long completedOrders;
+    private Long cancelledOrders;
 }

@@ -8,6 +8,7 @@ import com.dework.orderservice.dto.order.UpdateOrderStatusRequest;
 import com.dework.orderservice.exception.ApiException;
 import com.dework.orderservice.model.OrderStatus;
 import com.dework.orderservice.model.PaymentStatus;
+import com.dework.orderservice.model.SagaLog;
 import com.dework.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,6 +59,11 @@ public class OrderController {
     @GetMapping("/{orderCode}")
     public OrderResponse getOrderByCode(@PathVariable String orderCode) {
         return orderService.getOrderByCode(orderCode);
+    }
+
+    @GetMapping("/{orderCode}/saga-logs")
+    public List<SagaLog> getSagaLogs(@PathVariable String orderCode) {
+        return orderService.getSagaLogs(orderCode);
     }
 
     @GetMapping

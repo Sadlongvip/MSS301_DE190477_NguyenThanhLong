@@ -19,7 +19,7 @@ public class CartResponse {
     private Long userId;
     private String sessionId;
     private Integer totalQuantity;
-    private double totalPrice;
+    private Double totalPrice;
     private List<CartItemResponse> items;
 
     public static CartResponse from(Cart cart) {

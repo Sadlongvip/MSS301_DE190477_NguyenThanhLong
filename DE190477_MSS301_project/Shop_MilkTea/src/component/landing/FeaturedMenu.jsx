@@ -3,7 +3,7 @@ import { Container, Row, Col, Card, Button, Badge, Form, InputGroup } from 'reac
 import { InventoryContext } from '../../context/InventoryContext';
 import { CATEGORIES as FALLBACK_CATEGORIES, PRODUCTS as FALLBACK_PRODUCTS } from '../../constant/landingData';
 
-const DEFAULT_TEA_IMAGE = 'https://images.unsplash.com/photo-1558857563-b37cfb8cb468?auto=format&fit=crop&w=600&q=80';
+const DEFAULT_TEA_IMAGE = 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=600&auto=format&fit=crop&q=80';
 
 /**
  * Featured Menu Section - Thực đơn nổi bật với bộ lọc danh mục và tìm kiếm nhanh
@@ -106,27 +106,28 @@ export function FeaturedMenu({ onSelectProduct, onQuickAdd }) {
 
           {/* Ô tìm kiếm món */}
           <div style={{ maxWidth: '280px', width: '100%' }}>
-            <InputGroup size="sm" className="shadow-sm rounded-pill overflow-hidden border">
-              <InputGroup.Text className="bg-white border-0 ps-3">
+            <div className="unified-input-group rounded-pill shadow-sm bg-white">
+              <span className="unified-input-icon">
                 <i className="bi bi-search text-muted"></i>
-              </InputGroup.Text>
-              <Form.Control
+              </span>
+              <input
                 type="text"
                 placeholder="Tìm món trà sữa..."
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
-                className="border-0 shadow-none py-2"
+                className="unified-input-control"
               />
               {searchKeyword && (
-                <Button
-                  variant="white"
-                  className="border-0 pe-3 text-muted"
+                <button
+                  type="button"
+                  className="unified-input-btn text-muted"
                   onClick={() => setSearchKeyword('')}
+                  title="Xóa tìm kiếm"
                 >
                   <i className="bi bi-x-circle-fill"></i>
-                </Button>
+                </button>
               )}
-            </InputGroup>
+            </div>
           </div>
         </div>
 
@@ -147,10 +148,14 @@ export function FeaturedMenu({ onSelectProduct, onQuickAdd }) {
                   {/* Ảnh sản phẩm */}
                   <div className="product-img-wrapper">
                     <img
-                      src={product.image}
+                      src={product.image || DEFAULT_TEA_IMAGE}
                       alt={product.name}
                       className="product-img"
                       loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = DEFAULT_TEA_IMAGE;
+                      }}
                     />
                     <span className={`badge-custom-tag bg-${product.tagColor || 'warning'}`}>
                       {product.tag}

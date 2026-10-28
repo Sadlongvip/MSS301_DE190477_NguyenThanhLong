@@ -32,12 +32,23 @@ public class AddToCartRequest {
     @Size(max = 500, message = "Topping không được vượt quá 500 ký tự")
     private String toppings;
 
+    @NotNull(message = "Số lượng không được để trống")
     @Min(value = 1, message = "Số lượng phải lớn hơn hoặc bằng 1")
     @Builder.Default
-    private int quantity = 1;
+    private Integer quantity = 1;
 
+    @NotNull(message = "Đơn giá không được để trống")
     @DecimalMin(value = "0.0", inclusive = true, message = "Đơn giá không được âm")
-    private double unitPrice;
+    @Builder.Default
+    private Double unitPrice = 0.0;
+
+    public int getQuantity() {
+        return quantity != null ? quantity : 1;
+    }
+
+    public double getUnitPrice() {
+        return unitPrice != null ? unitPrice : 0.0;
+    }
 
     private String image;
 

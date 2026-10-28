@@ -19,10 +19,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
+import com.dework.reportservice.model.ReportOrder;
 
 @Slf4j
 @Service
@@ -34,10 +37,11 @@ public class ReportService {
 
     public void validateAdminRole() {
         String role = AuditContext.getCurrentUserRole();
-        if (role == null || !role.equalsIgnoreCase("ADMIN")) {
-            throw ApiException.forbidden("Bạn không có quyền truy cập báo cáo quản trị (Yêu cầu quyền ADMIN)");
+        if (role == null || (!role.equalsIgnoreCase("ADMIN") && !role.equalsIgnoreCase("STAFF"))) {
+            throw ApiException.forbidden("Bạn không có quyền truy cập báo cáo quản trị (Yêu cầu quyền ADMIN hoặc STAFF)");
         }
     }
+
 
     public AdminDashboardReportResponse getDashboardReport(LocalDate startDate, LocalDate endDate, int topLimit) {
         validateAdminRole();
@@ -85,15 +89,60 @@ public class ReportService {
         return getPaymentMethodBreakdownInternal(normalizeDateRange(startDate, endDate));
     }
 
+    public byte[] exportOrdersReportCsv(LocalDate startDate, LocalDate endDate, String status) {
+        validateAdminRole();
+        DateRange range = normalizeDateRange(startDate, endDate);
+        String filterStatus = (status != null && !status.isBlank() && !status.equalsIgnoreCase("ALL")) ? status : null;
+        List<ReportOrder> orders = reportOrderRepository.findOrdersForReport(range.startDateTime(), range.endDateTime(), filterStatus);
+
+        StringBuilder sb = new StringBuilder();
+        // Byte Order Mark (BOM) UTF-8 để Excel hiển thị tiếng Việt có dấu chuẩn 100%
+        sb.append('\uFEFF');
+        // Tiêu đề các cột
+        sb.append("Mã Đơn Hàng,Thời Gian Tạo,Tên Khách Hàng,Số Điện Thoại,Địa Chỉ Nhận Hàng,Kênh Đặt,Tạm Tính (VNĐ),Phí Vận Chuyển (VNĐ),Giảm Giá (VNĐ),Tổng Tiền (VNĐ),Phương Thức Thanh Toán,Trạng Thái Thanh Toán,Trạng Thái Đơn Hàng,Chi Tiết Món\n");
+
+        for (ReportOrder order : orders) {
+            String itemsSummary = (order.getItems() != null) ? order.getItems().stream()
+                    .map(it -> it.getMilkTeaName() + " (x" + it.getQuantity() + ", size " + (it.getSize() != null ? it.getSize() : "M") + ")")
+                    .collect(Collectors.joining("; ")) : "";
+
+            String channel = (order.getShippingAddress() != null && (order.getShippingAddress().contains("Tại quầy") || order.getShippingAddress().contains("Cửa hàng")))
+                    ? "Tại quầy" : "Giao hàng";
+
+            sb.append(escapeCsv(order.getOrderCode())).append(',')
+              .append(escapeCsv(order.getCreatedAt() != null ? order.getCreatedAt().toString().replace('T', ' ') : "")).append(',')
+              .append(escapeCsv(order.getCustomerName())).append(',')
+              .append(escapeCsv(order.getPhoneNumber())).append(',')
+              .append(escapeCsv(order.getShippingAddress())).append(',')
+              .append(escapeCsv(channel)).append(',')
+              .append(order.getSubtotal() != null ? Math.round(order.getSubtotal()) : 0).append(',')
+              .append(order.getShippingFee() != null ? Math.round(order.getShippingFee()) : 0).append(',')
+              .append(order.getDiscountAmount() != null ? Math.round(order.getDiscountAmount()) : 0).append(',')
+              .append(order.getTotalAmount() != null ? Math.round(order.getTotalAmount()) : 0).append(',')
+              .append(escapeCsv(order.getPaymentMethod())).append(',')
+              .append(escapeCsv(order.getPaymentStatus())).append(',')
+              .append(escapeCsv(order.getStatus())).append(',')
+              .append(escapeCsv(itemsSummary)).append('\n');
+        }
+
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "\"\"";
+        return "\"" + value.replace("\"", "\"\"") + "\"";
+    }
+
+
     private DashboardSummaryDto getSummaryInternal(DateRange range) {
         SummaryStatsProjection stats = reportOrderRepository.getSummaryStats(range.startDateTime(), range.endDateTime());
         if (stats == null) {
             return DashboardSummaryDto.builder()
-                    .totalOrders(0)
+                    .totalOrders(0L)
                     .totalRevenue(0.0)
-                    .completedOrders(0)
-                    .cancelledOrders(0)
-                    .pendingOrders(0)
+                    .completedOrders(0L)
+                    .cancelledOrders(0L)
+                    .pendingOrders(0L)
                     .averageOrderValue(0.0)
                     .totalDiscountAmount(0.0)
                     .build();

@@ -15,7 +15,7 @@ public class PaymentResponseDTO {
 
     private String transactionCode;
     private String orderCode;
-    private double amount;
+    private Double amount;
     private PaymentMethod paymentMethod;
     private PaymentStatus status;
     private String paymentUrl;

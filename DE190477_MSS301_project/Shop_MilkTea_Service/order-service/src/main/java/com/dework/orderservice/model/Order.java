@@ -60,19 +60,19 @@ public class Order extends BaseEntity {
 
     @Column(name = "subtotal", nullable = false)
     @Builder.Default
-    private double subtotal = 0.0;
+    private Double subtotal = 0.0;
 
     @Column(name = "shipping_fee", nullable = false)
     @Builder.Default
-    private double shippingFee = 0.0;
+    private Double shippingFee = 0.0;
 
     @Column(name = "discount_amount", nullable = false)
     @Builder.Default
-    private double discountAmount = 0.0;
+    private Double discountAmount = 0.0;
 
     @Column(name = "total_amount", nullable = false)
     @Builder.Default
-    private double totalAmount = 0.0;
+    private Double totalAmount = 0.0;
 
     @Column(name = "voucher_code")
     private String voucherCode;
@@ -117,9 +117,27 @@ public class Order extends BaseEntity {
             this.items = new ArrayList<>();
         }
         this.subtotal = this.items.stream()
-                .mapToDouble(OrderItem::getTotalPrice)
+                .mapToDouble(item -> item.getTotalPrice() != null ? item.getTotalPrice() : 0.0)
                 .sum();
-        this.totalAmount = Math.max(0.0, this.subtotal + this.shippingFee - this.discountAmount);
+        double fee = this.shippingFee != null ? this.shippingFee : 0.0;
+        double discount = this.discountAmount != null ? this.discountAmount : 0.0;
+        this.totalAmount = Math.max(0.0, this.subtotal + fee - discount);
+    }
+
+    public Double getSubtotal() {
+        return subtotal != null ? subtotal : 0.0;
+    }
+
+    public Double getShippingFee() {
+        return shippingFee != null ? shippingFee : 0.0;
+    }
+
+    public Double getDiscountAmount() {
+        return discountAmount != null ? discountAmount : 0.0;
+    }
+
+    public Double getTotalAmount() {
+        return totalAmount != null ? totalAmount : 0.0;
     }
 
     public Long getUserId() {

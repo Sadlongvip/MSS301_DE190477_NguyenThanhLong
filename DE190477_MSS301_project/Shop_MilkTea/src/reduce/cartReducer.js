@@ -51,7 +51,7 @@ export function normalizeCartItem(item, index) {
     unitPrice,
     price: unitPrice,
     totalPrice,
-    image: item.image || 'https://images.unsplash.com/photo-1558857563-b37cfb8cb468?auto=format&fit=crop&w=600&q=80',
+    image: item.image || 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&w=600&q=80',
     note: item.note || '',
   };
 }

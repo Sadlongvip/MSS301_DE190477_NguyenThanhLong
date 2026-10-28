@@ -33,7 +33,7 @@ public class TeaSize extends BaseEntity {
 
     @Column(name = "extra_price", nullable = false)
     @Builder.Default
-    private double extraPrice = 0.0;
+    private Double extraPrice = 0.0;
 
     @Column(name = "is_default", nullable = false)
     @Builder.Default
@@ -42,4 +42,8 @@ public class TeaSize extends BaseEntity {
     @Column(name = "is_available", nullable = false)
     @Builder.Default
     private Boolean isAvailable = true;
+
+    public Double getExtraPrice() {
+        return extraPrice != null ? extraPrice : 0.0;
+    }
 }

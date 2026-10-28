@@ -17,14 +17,39 @@ import {
   ToastContainer,
   InputGroup,
 } from 'react-bootstrap';
-import { MainLayout } from '../../layout';
+import AdminLayout from '../../layout/AdminLayout';
 import { InventoryContext } from '../../context/InventoryContext';
-import inventoryService from '../../service/inventoryService';
+import { useNavigate } from 'react-router-dom';
+import {
+  validateMilkTeaForm,
+  validateCategoryForm,
+  validateToppingForm,
+  validateSizeForm,
+} from '../../validation/menuValidation';
 
-const DEFAULT_TEA_IMAGE = 'https://images.unsplash.com/photo-1558857563-b37cfb8cb468?auto=format&fit=crop&w=600&q=80';
+const DEFAULT_TEA_IMAGE = 'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=600&auto=format&fit=crop&q=80';
 
 export function AdminMenuPage() {
-  const { categories, milkTeas, toppings, sizes, refreshAll } = useContext(InventoryContext);
+  const {
+    categories,
+    milkTeas,
+    toppings,
+    sizes,
+    refreshAll,
+    createMilkTea,
+    updateMilkTea,
+    deleteMilkTea,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    createTopping,
+    updateTopping,
+    deleteTopping,
+    createSize,
+    updateSize,
+    deleteSize,
+  } = useContext(InventoryContext);
+  const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('milkteas');
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +64,7 @@ export function AdminMenuPage() {
   // Loading state for operations
   const [submitting, setSubmitting] = useState(false);
 
-  /* ================= MODAL STATES ================= */
+  /* ================= MODAL STATES & ERRORS ================= */
   // Modal Trà sữa
   const [showTeaModal, setShowTeaModal] = useState(false);
   const [teaEditing, setTeaEditing] = useState(null); // null = tạo mới
@@ -51,11 +76,13 @@ export function AdminMenuPage() {
     categoryId: '',
     isAvailable: true,
   });
+  const [teaErrors, setTeaErrors] = useState({});
 
   // Modal Danh mục
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categoryEditing, setCategoryEditing] = useState(null);
   const [categoryForm, setCategoryForm] = useState({ name: '' });
+  const [categoryErrors, setCategoryErrors] = useState({});
 
   // Modal Topping
   const [showToppingModal, setShowToppingModal] = useState(false);
@@ -65,6 +92,7 @@ export function AdminMenuPage() {
     price: '',
     isAvailable: true,
   });
+  const [toppingErrors, setToppingErrors] = useState({});
 
   // Modal Size
   const [showSizeModal, setShowSizeModal] = useState(false);
@@ -76,6 +104,7 @@ export function AdminMenuPage() {
     isDefault: false,
     isAvailable: true,
   });
+  const [sizeErrors, setSizeErrors] = useState({});
 
   // Modal Xác nhận xóa
   const [deleteConfirm, setDeleteConfirm] = useState({
@@ -87,6 +116,7 @@ export function AdminMenuPage() {
 
   /* ================= HANDLERS: MILK TEA ================= */
   const handleOpenTeaModal = (tea = null) => {
+    setTeaErrors({});
     if (tea) {
       setTeaEditing(tea);
       setTeaForm({
@@ -113,8 +143,9 @@ export function AdminMenuPage() {
 
   const handleSaveTea = async (e) => {
     e.preventDefault();
-    if (!teaForm.name.trim() || !teaForm.price || !teaForm.categoryId) {
-      showToast('Vui lòng điền đầy đủ tên, giá và danh mục món!', 'danger');
+    const validation = validateMilkTeaForm(teaForm);
+    if (!validation.isValid) {
+      setTeaErrors(validation.errors);
       return;
     }
 
@@ -130,14 +161,23 @@ export function AdminMenuPage() {
       };
 
       if (teaEditing) {
-        await inventoryService.updateMilkTea(teaEditing.id, payload);
-        showToast('Cập nhật món trà sữa thành công!');
+        const res = await updateMilkTea(teaEditing.id, payload);
+        if (res.success) {
+          showToast('Cập nhật món trà sữa thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi cập nhật trà sữa', 'danger');
+          return;
+        }
       } else {
-        await inventoryService.createMilkTea(payload);
-        showToast('Thêm món trà sữa mới thành công!');
+        const res = await createMilkTea(payload);
+        if (res.success) {
+          showToast('Thêm món trà sữa mới thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi thêm trà sữa', 'danger');
+          return;
+        }
       }
 
-      await refreshAll();
       setShowTeaModal(false);
     } catch (err) {
       showToast(err.message || 'Lỗi khi lưu trà sữa', 'danger');
@@ -152,12 +192,11 @@ export function AdminMenuPage() {
       title: 'Xóa Món Trà Sữa',
       message: `Bạn có chắc chắn muốn xóa "${tea.name}" khỏi thực đơn không?`,
       onConfirm: async () => {
-        try {
-          await inventoryService.deleteMilkTea(tea.id);
+        const res = await deleteMilkTea(tea.id);
+        if (res.success) {
           showToast(`Đã xóa món "${tea.name}"`);
-          await refreshAll();
-        } catch (err) {
-          showToast(err.message || 'Không thể xóa món', 'danger');
+        } else {
+          showToast(res.error || 'Không thể xóa món', 'danger');
         }
       },
     });
@@ -165,6 +204,7 @@ export function AdminMenuPage() {
 
   /* ================= HANDLERS: CATEGORY ================= */
   const handleOpenCategoryModal = (cat = null) => {
+    setCategoryErrors({});
     if (cat) {
       setCategoryEditing(cat);
       setCategoryForm({ name: cat.name || '' });
@@ -177,8 +217,9 @@ export function AdminMenuPage() {
 
   const handleSaveCategory = async (e) => {
     e.preventDefault();
-    if (!categoryForm.name.trim()) {
-      showToast('Tên danh mục không được để trống!', 'danger');
+    const validation = validateCategoryForm(categoryForm);
+    if (!validation.isValid) {
+      setCategoryErrors(validation.errors);
       return;
     }
 
@@ -186,13 +227,22 @@ export function AdminMenuPage() {
     try {
       const payload = { name: categoryForm.name.trim() };
       if (categoryEditing) {
-        await inventoryService.updateCategory(categoryEditing.id, payload);
-        showToast('Cập nhật danh mục thành công!');
+        const res = await updateCategory(categoryEditing.id, payload);
+        if (res.success) {
+          showToast('Cập nhật danh mục thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi cập nhật danh mục', 'danger');
+          return;
+        }
       } else {
-        await inventoryService.createCategory(payload);
-        showToast('Thêm danh mục mới thành công!');
+        const res = await createCategory(payload);
+        if (res.success) {
+          showToast('Thêm danh mục mới thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi thêm danh mục', 'danger');
+          return;
+        }
       }
-      await refreshAll();
       setShowCategoryModal(false);
     } catch (err) {
       showToast(err.message || 'Lỗi khi lưu danh mục', 'danger');
@@ -207,12 +257,11 @@ export function AdminMenuPage() {
       title: 'Xóa Danh Mục',
       message: `Bạn có chắc muốn xóa danh mục "${cat.name}"? Các món thuộc danh mục này sẽ mất liên kết danh mục!`,
       onConfirm: async () => {
-        try {
-          await inventoryService.deleteCategory(cat.id);
+        const res = await deleteCategory(cat.id);
+        if (res.success) {
           showToast(`Đã xóa danh mục "${cat.name}"`);
-          await refreshAll();
-        } catch (err) {
-          showToast(err.message || 'Không thể xóa danh mục', 'danger');
+        } else {
+          showToast(res.error || 'Không thể xóa danh mục', 'danger');
         }
       },
     });
@@ -220,6 +269,7 @@ export function AdminMenuPage() {
 
   /* ================= HANDLERS: TOPPING ================= */
   const handleOpenToppingModal = (top = null) => {
+    setToppingErrors({});
     if (top) {
       setToppingEditing(top);
       setToppingForm({
@@ -236,8 +286,9 @@ export function AdminMenuPage() {
 
   const handleSaveTopping = async (e) => {
     e.preventDefault();
-    if (!toppingForm.name.trim() || toppingForm.price === '') {
-      showToast('Vui lòng điền tên và giá topping!', 'danger');
+    const validation = validateToppingForm(toppingForm);
+    if (!validation.isValid) {
+      setToppingErrors(validation.errors);
       return;
     }
 
@@ -250,13 +301,22 @@ export function AdminMenuPage() {
       };
 
       if (toppingEditing) {
-        await inventoryService.updateTopping(toppingEditing.id, payload);
-        showToast('Cập nhật topping thành công!');
+        const res = await updateTopping(toppingEditing.id, payload);
+        if (res.success) {
+          showToast('Cập nhật topping thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi cập nhật topping', 'danger');
+          return;
+        }
       } else {
-        await inventoryService.createTopping(payload);
-        showToast('Thêm topping mới thành công!');
+        const res = await createTopping(payload);
+        if (res.success) {
+          showToast('Thêm topping mới thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi thêm topping', 'danger');
+          return;
+        }
       }
-      await refreshAll();
       setShowToppingModal(false);
     } catch (err) {
       showToast(err.message || 'Lỗi khi lưu topping', 'danger');
@@ -271,12 +331,11 @@ export function AdminMenuPage() {
       title: 'Xóa Topping',
       message: `Bạn có chắc muốn xóa topping "${top.name}"?`,
       onConfirm: async () => {
-        try {
-          await inventoryService.deleteTopping(top.id);
+        const res = await deleteTopping(top.id);
+        if (res.success) {
           showToast(`Đã xóa topping "${top.name}"`);
-          await refreshAll();
-        } catch (err) {
-          showToast(err.message || 'Không thể xóa topping', 'danger');
+        } else {
+          showToast(res.error || 'Không thể xóa topping', 'danger');
         }
       },
     });
@@ -284,6 +343,7 @@ export function AdminMenuPage() {
 
   /* ================= HANDLERS: SIZE ================= */
   const handleOpenSizeModal = (s = null) => {
+    setSizeErrors({});
     if (s) {
       setSizeEditing(s);
       setSizeForm({
@@ -308,8 +368,9 @@ export function AdminMenuPage() {
 
   const handleSaveSize = async (e) => {
     e.preventDefault();
-    if (!sizeForm.name.trim() || !sizeForm.code.trim()) {
-      showToast('Vui lòng điền tên size và mã size (M, L, XL)!', 'danger');
+    const validation = validateSizeForm(sizeForm);
+    if (!validation.isValid) {
+      setSizeErrors(validation.errors);
       return;
     }
 
@@ -324,13 +385,22 @@ export function AdminMenuPage() {
       };
 
       if (sizeEditing) {
-        await inventoryService.updateSize(sizeEditing.id, payload);
-        showToast('Cập nhật size ly thành công!');
+        const res = await updateSize(sizeEditing.id, payload);
+        if (res.success) {
+          showToast('Cập nhật size ly thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi cập nhật size', 'danger');
+          return;
+        }
       } else {
-        await inventoryService.createSize(payload);
-        showToast('Thêm size ly mới thành công!');
+        const res = await createSize(payload);
+        if (res.success) {
+          showToast('Thêm size ly mới thành công!');
+        } else {
+          showToast(res.error || 'Lỗi khi thêm size', 'danger');
+          return;
+        }
       }
-      await refreshAll();
       setShowSizeModal(false);
     } catch (err) {
       showToast(err.message || 'Lỗi khi lưu size ly', 'danger');
@@ -345,12 +415,11 @@ export function AdminMenuPage() {
       title: 'Xóa Kích Cỡ Ly',
       message: `Bạn có chắc muốn xóa "${s.name}"?`,
       onConfirm: async () => {
-        try {
-          await inventoryService.deleteSize(s.id);
+        const res = await deleteSize(s.id);
+        if (res.success) {
           showToast(`Đã xóa size "${s.name}"`);
-          await refreshAll();
-        } catch (err) {
-          showToast(err.message || 'Không thể xóa size', 'danger');
+        } else {
+          showToast(res.error || 'Không thể xóa size', 'danger');
         }
       },
     });
@@ -367,7 +436,7 @@ export function AdminMenuPage() {
   });
 
   return (
-    <MainLayout>
+    <AdminLayout pageTitle="Quản Lý Thực Đơn & Kho Hàng">
       {/* Toast Notification */}
       <ToastContainer position="top-end" className="p-3" style={{ zIndex: 9999 }}>
         <Toast
@@ -390,8 +459,8 @@ export function AdminMenuPage() {
         </Toast>
       </ToastContainer>
 
-      <div className="bg-light py-4 min-vh-100">
-        <Container fluid="xl" className="px-3 px-xl-4">
+      <div>
+        <Container fluid className="px-0">
           {/* Header Banner */}
           <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 bg-white p-4 rounded-4 shadow-sm border mb-4">
             <div>
@@ -410,6 +479,16 @@ export function AdminMenuPage() {
             </div>
 
             <div className="d-flex gap-2">
+              <Button
+                variant="warning"
+                size="sm"
+                className="rounded-pill px-3 d-flex align-items-center gap-1 shadow-sm fw-semibold text-dark"
+                onClick={() => navigate('/admin/dashboard')}
+                title="Xem Báo Cáo Doanh Thu & Đơn Hàng"
+              >
+                <i className="bi bi-graph-up-arrow"></i>
+                <span>Xem Báo Cáo</span>
+              </Button>
               <Button
                 variant="outline-secondary"
                 size="sm"
@@ -454,17 +533,17 @@ export function AdminMenuPage() {
                 <Card className="border-0 rounded-4 shadow-sm overflow-hidden">
                   <Card.Header className="bg-white p-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                     <div className="d-flex flex-wrap align-items-center gap-2 flex-grow-1" style={{ maxWidth: '600px' }}>
-                      <InputGroup size="sm" className="rounded-pill overflow-hidden border">
-                        <InputGroup.Text className="bg-white border-0 ps-3">
+                      <div className="unified-input-group rounded-pill shadow-sm bg-white flex-grow-1">
+                        <span className="unified-input-icon">
                           <i className="bi bi-search text-muted"></i>
-                        </InputGroup.Text>
-                        <Form.Control
+                        </span>
+                        <input
                           placeholder="Tìm kiếm món theo tên hoặc mô tả..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="border-0 shadow-none py-2"
+                          className="unified-input-control"
                         />
-                      </InputGroup>
+                      </div>
 
                       <Form.Select
                         size="sm"
@@ -856,7 +935,7 @@ export function AdminMenuPage() {
 
       {/* ================= MODAL: THÊM / SỬA MILK TEA ================= */}
       <Modal show={showTeaModal} onHide={() => !submitting && setShowTeaModal(false)} centered size="lg">
-        <Form onSubmit={handleSaveTea}>
+        <Form onSubmit={handleSaveTea} noValidate>
           <Modal.Header closeButton>
             <Modal.Title className="fw-bold fs-5">
               {teaEditing ? 'Chỉnh Sửa Món Trà Sữa' : 'Thêm Món Trà Sữa Mới'}
@@ -865,38 +944,59 @@ export function AdminMenuPage() {
           <Modal.Body className="p-4">
             <Row className="g-3">
               <Col md={8}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="teaName">
                   <Form.Label className="fw-semibold small">Tên Trà Sữa *</Form.Label>
                   <Form.Control
-                    required
                     placeholder="VD: Trà sữa trân châu đường đen"
                     value={teaForm.name}
-                    onChange={(e) => setTeaForm({ ...teaForm, name: e.target.value })}
+                    onChange={(e) => {
+                      setTeaForm({ ...teaForm, name: e.target.value });
+                      if (teaErrors.name) setTeaErrors({ ...teaErrors, name: '' });
+                    }}
+                    isInvalid={Boolean(teaErrors.name)}
                   />
+                  {teaErrors.name && (
+                    <Form.Control.Feedback type="invalid" className="d-block small">
+                      <i className="bi bi-exclamation-circle-fill me-1"></i>
+                      {teaErrors.name}
+                    </Form.Control.Feedback>
+                  )}
                 </Form.Group>
               </Col>
               <Col md={4}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="teaPrice">
                   <Form.Label className="fw-semibold small">Giá Bán (VNĐ) *</Form.Label>
                   <Form.Control
                     type="number"
-                    required
                     min="1000"
                     step="1000"
                     placeholder="VD: 35000"
                     value={teaForm.price}
-                    onChange={(e) => setTeaForm({ ...teaForm, price: e.target.value })}
+                    onChange={(e) => {
+                      setTeaForm({ ...teaForm, price: e.target.value });
+                      if (teaErrors.price) setTeaErrors({ ...teaErrors, price: '' });
+                    }}
+                    isInvalid={Boolean(teaErrors.price)}
                   />
+                  {teaErrors.price && (
+                    <Form.Control.Feedback type="invalid" className="d-block small">
+                      <i className="bi bi-exclamation-circle-fill me-1"></i>
+                      {teaErrors.price}
+                    </Form.Control.Feedback>
+                  )}
                 </Form.Group>
               </Col>
 
               <Col md={6}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="teaCategoryId">
                   <Form.Label className="fw-semibold small">Danh Mục Sản Phẩm *</Form.Label>
                   <Form.Select
-                    required
                     value={teaForm.categoryId}
-                    onChange={(e) => setTeaForm({ ...teaForm, categoryId: e.target.value })}
+                    onChange={(e) => {
+                      setTeaForm({ ...teaForm, categoryId: e.target.value });
+                      if (teaErrors.categoryId) setTeaErrors({ ...teaErrors, categoryId: '' });
+                    }}
+                    isInvalid={Boolean(teaErrors.categoryId)}
                   >
                     <option value="">-- Chọn danh mục --</option>
                     {categories.map((c) => (
@@ -905,11 +1005,17 @@ export function AdminMenuPage() {
                       </option>
                     ))}
                   </Form.Select>
+                  {teaErrors.categoryId && (
+                    <Form.Control.Feedback type="invalid" className="d-block small">
+                      <i className="bi bi-exclamation-circle-fill me-1"></i>
+                      {teaErrors.categoryId}
+                    </Form.Control.Feedback>
+                  )}
                 </Form.Group>
               </Col>
 
               <Col md={6}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="teaImage">
                   <Form.Label className="fw-semibold small">URL Hình Ảnh</Form.Label>
                   <Form.Control
                     placeholder="https://images.unsplash.com/..."
@@ -920,7 +1026,7 @@ export function AdminMenuPage() {
               </Col>
 
               <Col xs={12}>
-                <Form.Group className="mb-3">
+                <Form.Group className="mb-3" controlId="teaDescription">
                   <Form.Label className="fw-semibold small">Mô Tả Sản Phẩm</Form.Label>
                   <Form.Control
                     as="textarea"
@@ -933,14 +1039,15 @@ export function AdminMenuPage() {
               </Col>
 
               <Col xs={12}>
-                <Form.Check
-                  type="switch"
-                  id="tea-is-available"
-                  label="Món này đang có sẵn phục vụ khách (Bỏ tick nếu tạm hết hàng)"
-                  checked={teaForm.isAvailable}
-                  onChange={(e) => setTeaForm({ ...teaForm, isAvailable: e.target.checked })}
-                  className="fw-semibold small text-success"
-                />
+                <Form.Group controlId="teaIsAvailable">
+                  <Form.Check
+                    type="switch"
+                    label="Món này đang có sẵn phục vụ khách (Bỏ tick nếu tạm hết hàng)"
+                    checked={teaForm.isAvailable}
+                    onChange={(e) => setTeaForm({ ...teaForm, isAvailable: e.target.checked })}
+                    className="fw-semibold small text-success"
+                  />
+                </Form.Group>
               </Col>
             </Row>
           </Modal.Body>
@@ -957,21 +1064,30 @@ export function AdminMenuPage() {
 
       {/* ================= MODAL: THÊM / SỬA CATEGORY ================= */}
       <Modal show={showCategoryModal} onHide={() => !submitting && setShowCategoryModal(false)} centered>
-        <Form onSubmit={handleSaveCategory}>
+        <Form onSubmit={handleSaveCategory} noValidate>
           <Modal.Header closeButton>
             <Modal.Title className="fw-bold fs-5">
               {categoryEditing ? 'Chỉnh Sửa Danh Mục' : 'Thêm Danh Mục Mới'}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
-            <Form.Group>
+            <Form.Group controlId="categoryName">
               <Form.Label className="fw-semibold small">Tên Danh Mục *</Form.Label>
               <Form.Control
-                required
                 placeholder="VD: Trà trái cây tươi, Trà sữa truyền thống..."
                 value={categoryForm.name}
-                onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                onChange={(e) => {
+                  setCategoryForm({ ...categoryForm, name: e.target.value });
+                  if (categoryErrors.name) setCategoryErrors({ ...categoryErrors, name: '' });
+                }}
+                isInvalid={Boolean(categoryErrors.name)}
               />
+              {categoryErrors.name && (
+                <Form.Control.Feedback type="invalid" className="d-block small">
+                  <i className="bi bi-exclamation-circle-fill me-1"></i>
+                  {categoryErrors.name}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>
@@ -987,42 +1103,61 @@ export function AdminMenuPage() {
 
       {/* ================= MODAL: THÊM / SỬA TOPPING ================= */}
       <Modal show={showToppingModal} onHide={() => !submitting && setShowToppingModal(false)} centered>
-        <Form onSubmit={handleSaveTopping}>
+        <Form onSubmit={handleSaveTopping} noValidate>
           <Modal.Header closeButton>
             <Modal.Title className="fw-bold fs-5">
               {toppingEditing ? 'Chỉnh Sửa Topping' : 'Thêm Topping Mới'}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="toppingName">
               <Form.Label className="fw-semibold small">Tên Topping *</Form.Label>
               <Form.Control
-                required
                 placeholder="VD: Trân châu hoàng kim"
                 value={toppingForm.name}
-                onChange={(e) => setToppingForm({ ...toppingForm, name: e.target.value })}
+                onChange={(e) => {
+                  setToppingForm({ ...toppingForm, name: e.target.value });
+                  if (toppingErrors.name) setToppingErrors({ ...toppingErrors, name: '' });
+                }}
+                isInvalid={Boolean(toppingErrors.name)}
               />
+              {toppingErrors.name && (
+                <Form.Control.Feedback type="invalid" className="d-block small">
+                  <i className="bi bi-exclamation-circle-fill me-1"></i>
+                  {toppingErrors.name}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="toppingPrice">
               <Form.Label className="fw-semibold small">Giá Tiền (VNĐ) *</Form.Label>
               <Form.Control
                 type="number"
-                required
                 min="0"
                 step="1000"
                 placeholder="VD: 8000"
                 value={toppingForm.price}
-                onChange={(e) => setToppingForm({ ...toppingForm, price: e.target.value })}
+                onChange={(e) => {
+                  setToppingForm({ ...toppingForm, price: e.target.value });
+                  if (toppingErrors.price) setToppingErrors({ ...toppingErrors, price: '' });
+                }}
+                isInvalid={Boolean(toppingErrors.price)}
+              />
+              {toppingErrors.price && (
+                <Form.Control.Feedback type="invalid" className="d-block small">
+                  <i className="bi bi-exclamation-circle-fill me-1"></i>
+                  {toppingErrors.price}
+                </Form.Control.Feedback>
+              )}
+            </Form.Group>
+            <Form.Group controlId="toppingIsAvailable">
+              <Form.Check
+                type="switch"
+                label="Topping đang còn hàng (Bỏ tick nếu tạm hết hàng)"
+                checked={toppingForm.isAvailable}
+                onChange={(e) => setToppingForm({ ...toppingForm, isAvailable: e.target.checked })}
+                className="fw-semibold small text-success"
               />
             </Form.Group>
-            <Form.Check
-              type="switch"
-              id="top-is-available"
-              label="Topping đang còn hàng (Bỏ tick nếu tạm hết hàng)"
-              checked={toppingForm.isAvailable}
-              onChange={(e) => setToppingForm({ ...toppingForm, isAvailable: e.target.checked })}
-              className="fw-semibold small text-success"
-            />
           </Modal.Body>
           <Modal.Footer>
             <Button variant="light" onClick={() => setShowToppingModal(false)} disabled={submitting}>
@@ -1037,67 +1172,96 @@ export function AdminMenuPage() {
 
       {/* ================= MODAL: THÊM / SỬA SIZE ================= */}
       <Modal show={showSizeModal} onHide={() => !submitting && setShowSizeModal(false)} centered>
-        <Form onSubmit={handleSaveSize}>
+        <Form onSubmit={handleSaveSize} noValidate>
           <Modal.Header closeButton>
             <Modal.Title className="fw-bold fs-5">
               {sizeEditing ? 'Chỉnh Sửa Kích Cỡ Ly' : 'Thêm Kích Cỡ Ly Mới'}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body className="p-4">
-            <Form.Group className="mb-3">
+            <Form.Group className="mb-3" controlId="sizeName">
               <Form.Label className="fw-semibold small">Tên Kích Cỡ *</Form.Label>
               <Form.Control
-                required
                 placeholder="VD: Size L (Cỡ lớn)"
                 value={sizeForm.name}
-                onChange={(e) => setSizeForm({ ...sizeForm, name: e.target.value })}
+                onChange={(e) => {
+                  setSizeForm({ ...sizeForm, name: e.target.value });
+                  if (sizeErrors.name) setSizeErrors({ ...sizeErrors, name: '' });
+                }}
+                isInvalid={Boolean(sizeErrors.name)}
               />
+              {sizeErrors.name && (
+                <Form.Control.Feedback type="invalid" className="d-block small">
+                  <i className="bi bi-exclamation-circle-fill me-1"></i>
+                  {sizeErrors.name}
+                </Form.Control.Feedback>
+              )}
             </Form.Group>
             <Row className="g-3 mb-3">
               <Col md={6}>
-                <Form.Group>
+                <Form.Group controlId="sizeCode">
                   <Form.Label className="fw-semibold small">Mã Size (Code) *</Form.Label>
                   <Form.Control
-                    required
                     placeholder="VD: M, L, XL"
                     value={sizeForm.code}
-                    onChange={(e) => setSizeForm({ ...sizeForm, code: e.target.value })}
+                    onChange={(e) => {
+                      setSizeForm({ ...sizeForm, code: e.target.value });
+                      if (sizeErrors.code) setSizeErrors({ ...sizeErrors, code: '' });
+                    }}
+                    isInvalid={Boolean(sizeErrors.code)}
                   />
+                  {sizeErrors.code && (
+                    <Form.Control.Feedback type="invalid" className="d-block small">
+                      <i className="bi bi-exclamation-circle-fill me-1"></i>
+                      {sizeErrors.code}
+                    </Form.Control.Feedback>
+                  )}
                 </Form.Group>
               </Col>
               <Col md={6}>
-                <Form.Group>
+                <Form.Group controlId="sizeExtraPrice">
                   <Form.Label className="fw-semibold small">Phụ Thu Giá (VNĐ) *</Form.Label>
                   <Form.Control
                     type="number"
-                    required
                     min="0"
                     step="1000"
                     placeholder="VD: 6000"
                     value={sizeForm.extraPrice}
-                    onChange={(e) => setSizeForm({ ...sizeForm, extraPrice: e.target.value })}
+                    onChange={(e) => {
+                      setSizeForm({ ...sizeForm, extraPrice: e.target.value });
+                      if (sizeErrors.extraPrice) setSizeErrors({ ...sizeErrors, extraPrice: '' });
+                    }}
+                    isInvalid={Boolean(sizeErrors.extraPrice)}
                   />
+                  {sizeErrors.extraPrice && (
+                    <Form.Control.Feedback type="invalid" className="d-block small">
+                      <i className="bi bi-exclamation-circle-fill me-1"></i>
+                      {sizeErrors.extraPrice}
+                    </Form.Control.Feedback>
+                  )}
                 </Form.Group>
               </Col>
             </Row>
 
-            <Form.Check
-              type="checkbox"
-              id="size-is-default"
-              label="Đặt làm Size mặc định khi khách chọn món"
-              checked={sizeForm.isDefault}
-              onChange={(e) => setSizeForm({ ...sizeForm, isDefault: e.target.checked })}
-              className="fw-semibold small mb-2"
-            />
+            <Form.Group className="mb-2" controlId="sizeIsDefault">
+              <Form.Check
+                type="checkbox"
+                label="Đặt làm Size mặc định khi khách chọn món"
+                checked={sizeForm.isDefault}
+                onChange={(e) => setSizeForm({ ...sizeForm, isDefault: e.target.checked })}
+                className="fw-semibold small"
+              />
+            </Form.Group>
 
-            <Form.Check
-              type="switch"
-              id="size-is-available"
-              label="Size ly này đang khả dụng phục vụ"
-              checked={sizeForm.isAvailable}
-              onChange={(e) => setSizeForm({ ...sizeForm, isAvailable: e.target.checked })}
-              className="fw-semibold small text-success"
-            />
+            <Form.Group controlId="sizeIsAvailable">
+              <Form.Check
+                type="switch"
+                label="Size ly này đang khả dụng phục vụ"
+                checked={sizeForm.isAvailable}
+                onChange={(e) => setSizeForm({ ...sizeForm, isAvailable: e.target.checked })}
+                className="fw-semibold small text-success"
+              />
+            </Form.Group>
           </Modal.Body>
           <Modal.Footer>
             <Button variant="light" onClick={() => setShowSizeModal(false)} disabled={submitting}>
@@ -1139,7 +1303,7 @@ export function AdminMenuPage() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </MainLayout>
+    </AdminLayout>
   );
 }
 

@@ -17,7 +17,7 @@ public class ErrorResponse {
     @Builder.Default
     private LocalDateTime timestamp = LocalDateTime.now();
 
-    private int status;
+    private Integer status;
     private String error;
     private String message;
     private String path;

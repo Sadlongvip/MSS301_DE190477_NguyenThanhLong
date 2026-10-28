@@ -34,6 +34,9 @@ public class AccountService {
     @Transactional
     public AccountResponse createAccount(AccountRequest request) {
         ensureUsernameAndEmailAvailable(request.getUsername(), request.getEmail(), null);
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw ApiException.badRequest("Mật khẩu không được để trống khi tạo mới");
+        }
 
         Account account = Account.builder()
                 .username(request.getUsername())
@@ -94,6 +97,23 @@ public class AccountService {
 
         Account updated = accountRepository.save(account);
         log.info("Account updated: id={}, username={}", updated.getId(), updated.getUsername());
+        return AccountResponse.from(updated);
+    }
+
+    @Transactional
+    public AccountResponse changePassword(Long id, String newPassword) {
+        if (newPassword == null || newPassword.isBlank()) {
+            throw ApiException.badRequest("Mật khẩu mới không được để trống");
+        }
+        if (newPassword.trim().length() < 6) {
+            throw ApiException.badRequest("Mật khẩu phải có ít nhất 6 ký tự");
+        }
+        Account account = findAccount(id);
+        account.setPassword(passwordEncoder.encode(newPassword.trim()));
+        account.setUpdatedAt(LocalDateTime.now());
+        account.setUpdatedBy(AuditContext.getCurrentUser());
+        Account updated = accountRepository.save(account);
+        log.info("Password changed for account id={}, username={}", id, updated.getUsername());
         return AccountResponse.from(updated);
     }
 

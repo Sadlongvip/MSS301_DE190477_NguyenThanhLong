@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PaymentMethodBreakdownDto {
     private String paymentMethod;
-    private long orderCount;
-    private double totalAmount;
+    private Long orderCount;
+    private Double totalAmount;
 }

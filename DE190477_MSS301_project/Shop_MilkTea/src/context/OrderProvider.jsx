@@ -236,9 +236,91 @@ export function OrderProvider({ children }) {
     return counts;
   }, [state.orders]);
 
+  /* ================= ADMIN ACTIONS (CỔNG GỌI API orderService DUY NHẤT) ================= */
+
+  /**
+   * Tải danh sách đơn hàng toàn hệ thống cho Admin
+   */
+  const fetchAdminOrders = useCallback(async (params = {}) => {
+    dispatch({ type: ORDER_ACTION_TYPES.ORDER_START });
+    try {
+      const data = await orderService.searchOrders(params);
+      dispatch({
+        type: ORDER_ACTION_TYPES.SET_ADMIN_ORDERS,
+        payload: data,
+      });
+      return { success: true, data };
+    } catch (err) {
+      const msg = err.message || 'Không thể tải danh sách đơn hàng quản trị';
+      dispatch({
+        type: ORDER_ACTION_TYPES.ORDER_FAILURE,
+        payload: msg,
+      });
+      return { success: false, error: msg };
+    }
+  }, []);
+
+  /**
+   * Admin cập nhật trạng thái đơn hàng (PENDING -> CONFIRMED -> PREPARING -> DELIVERING -> COMPLETED / CANCELLED)
+   */
+  const updateOrderStatus = useCallback(async (orderCode, status, note = '') => {
+    try {
+      const res = await orderService.updateOrderStatus(orderCode, { status, note });
+      dispatch({
+        type: ORDER_ACTION_TYPES.UPDATE_ADMIN_ORDER_STATUS_SUCCESS,
+        payload: res,
+      });
+      return { success: true, data: res };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Không thể cập nhật trạng thái đơn hàng';
+      return { success: false, error: msg };
+    }
+  }, []);
+
+  /**
+   * Admin cập nhật trạng thái thanh toán
+   */
+  const updatePaymentStatus = useCallback(async (orderCode, paymentStatus) => {
+    try {
+      const res = await orderService.updatePaymentStatus(orderCode, paymentStatus);
+      dispatch({
+        type: ORDER_ACTION_TYPES.UPDATE_ADMIN_ORDER_STATUS_SUCCESS,
+        payload: res,
+      });
+      return { success: true, data: res };
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Không thể cập nhật thanh toán';
+      return { success: false, error: msg };
+    }
+  }, []);
+
+  /**
+   * Admin lấy lịch sử Saga Choreography Logs của đơn hàng
+   */
+  const fetchSagaLogs = useCallback(async (orderCode) => {
+    try {
+      const data = await orderService.getSagaLogs(orderCode);
+      dispatch({
+        type: ORDER_ACTION_TYPES.SET_SAGA_LOGS,
+        payload: data || [],
+      });
+      return { success: true, data };
+    } catch (err) {
+      const msg = err.message || 'Không thể tải lịch sử Saga logs';
+      dispatch({
+        type: ORDER_ACTION_TYPES.SET_SAGA_LOGS,
+        payload: [],
+      });
+      return { success: false, error: msg };
+    }
+  }, []);
+
   const value = {
     // State từ Reducer
     orders: state.orders,
+    adminOrders: state.adminOrders,
+    adminPagination: state.adminPagination,
+    sagaLogs: state.sagaLogs,
     filteredOrders,
     selectedOrder: state.selectedOrder,
     statusFilter: state.statusFilter,
@@ -248,7 +330,7 @@ export function OrderProvider({ children }) {
     error: state.error,
     orderCounts,
 
-    // Các hàm hành động (cổng duy nhất gọi API orderService)
+    // Các hàm hành động người dùng
     fetchMyOrders,
     addNewOrder,
     getOrderDetail,
@@ -258,6 +340,12 @@ export function OrderProvider({ children }) {
     setStatusFilter,
     setSearchKeyword,
     clearError,
+
+    // Các hàm hành động Admin (Cổng duy nhất gọi API)
+    fetchAdminOrders,
+    updateOrderStatus,
+    updatePaymentStatus,
+    fetchSagaLogs,
   };
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;

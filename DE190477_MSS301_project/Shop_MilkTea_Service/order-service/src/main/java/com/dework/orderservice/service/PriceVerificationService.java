@@ -31,8 +31,12 @@ public class PriceVerificationService {
     public static class VerifiedProductInfo {
         private Long milkTeaId;
         private String milkTeaName;
-        private double verifiedUnitPrice;
+        private Double verifiedUnitPrice;
         private String image;
+
+        public double getVerifiedUnitPrice() {
+            return verifiedUnitPrice != null ? verifiedUnitPrice : 0.0;
+        }
     }
 
     /**

@@ -3,6 +3,9 @@
  * Hình ảnh chất lượng cao tối ưu cho đồ uống trà sữa
  */
 
+export const DEFAULT_TEA_IMAGE =
+  'https://images.unsplash.com/photo-1541658016709-82535e94bc69?w=600&auto=format&fit=crop&q=80';
+
 export const CATEGORIES = [
   { id: 'all', name: '✨ Tất Cả Món', icon: 'bi-grid-fill' },
   { id: 'best-seller', name: '🔥 Bán Chạy Nhất', icon: 'bi-fire' },
@@ -20,7 +23,7 @@ export const PRODUCTS = [
     originalPrice: 55000,
     rating: 4.9,
     reviewsCount: 382,
-    image: 'https://images.unsplash.com/photo-1558857563-b371f31ca910?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?w=600&auto=format&fit=crop&q=80',
     tag: 'Bán chạy số 1',
     tagColor: 'danger',
     description: 'Trà đen Ceylon đậm vị kết hợp trân châu thủ công nấu đường thốt nốt dẻo thơm và sữa tươi thanh trùng béo ngậy.',
@@ -34,7 +37,7 @@ export const PRODUCTS = [
     originalPrice: 48000,
     rating: 4.8,
     reviewsCount: 245,
-    image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1558857563-b37cf5a86d26?w=600&auto=format&fit=crop&q=80',
     tag: 'Đặc trưng',
     tagColor: 'warning',
     description: 'Lá trà Ô Long sao vàng dậy mùi khói nhẹ, hậu ngọt thanh lịch kèm lớp kem cheese mặn béo ngậy phía trên.',
@@ -62,7 +65,7 @@ export const PRODUCTS = [
     originalPrice: 55000,
     rating: 4.7,
     reviewsCount: 189,
-    image: 'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1560148196-df61132466ce?w=600&auto=format&fit=crop&q=80',
     tag: 'Mới ra mắt',
     tagColor: 'info',
     description: 'Bột trà xanh Uji Nhật Bản nguyên chất phối cùng đậu đỏ rim dẻo ngọt và lớp kem cheese béo bùi chuẩn vị.',
@@ -76,7 +79,7 @@ export const PRODUCTS = [
     originalPrice: 49000,
     rating: 4.8,
     reviewsCount: 167,
-    image: 'https://images.unsplash.com/photo-1546833998-877b37c2e5c6?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1613279060105-b851f33ca66b?w=600&auto=format&fit=crop&q=80',
     tag: 'Hot trend',
     tagColor: 'danger',
     description: 'Nước cốt dâu tằm Đà Lạt tươi 100% kết hợp thạch pha lê giòn dai, mang lại hương vị chua thanh giải nhiệt cực đã.',
@@ -90,7 +93,7 @@ export const PRODUCTS = [
     originalPrice: 45000,
     rating: 4.9,
     reviewsCount: 420,
-    image: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&auto=format&fit=crop&q=80',
     tag: 'Best Seller',
     tagColor: 'success',
     description: 'Trà Thái xanh chuẩn mùi thảo mộc thơm mát, ngọt dịu kết hợp thạch phô mai giòn ngậy cắn ngập miệng.',
@@ -104,7 +107,7 @@ export const PRODUCTS = [
     originalPrice: 58000,
     rating: 5.0,
     reviewsCount: 630,
-    image: 'https://images.unsplash.com/photo-1595981267035-7b04ca84a82d?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&auto=format&fit=crop&q=80',
     tag: 'Siêu phẩm',
     tagColor: 'danger',
     description: 'Sữa tươi Đà Lạt thanh trùng 100%, trân châu ấm nóng sốt đường đen vân cọ quẹt quanh ly cực kỳ bắt mắt.',
@@ -118,7 +121,7 @@ export const PRODUCTS = [
     originalPrice: 50000,
     rating: 4.8,
     reviewsCount: 215,
-    image: 'https://images.unsplash.com/photo-1563227812-0ea4c22e6cc8?w=600&auto=format&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1546173159-315724a31696?w=600&auto=format&fit=crop&q=80',
     tag: 'Đậm vị xoài',
     tagColor: 'warning',
     description: 'Xoài cát chín mọng xay nhuyễn cùng cốt trà hoa nhài thơm ngát, phủ lớp kem sữa mềm mịn bồng bềnh.',

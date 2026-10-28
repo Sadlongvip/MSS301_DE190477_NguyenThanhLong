@@ -9,6 +9,9 @@ import com.dework.reportservice.dto.report.TopSellingItemDto;
 import com.dework.reportservice.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,6 +26,7 @@ import java.util.List;
 public class ReportController {
 
     private final ReportService reportService;
+
 
     @GetMapping("/dashboard")
     public AdminDashboardReportResponse getDashboardReport(
@@ -67,4 +71,18 @@ public class ReportController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return reportService.getPaymentMethodBreakdown(startDate, endDate);
     }
+
+    @GetMapping("/export/orders/csv")
+    public ResponseEntity<byte[]> exportOrdersReportCsv(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String status) {
+        byte[] csvBytes = reportService.exportOrdersReportCsv(startDate, endDate, status);
+        String filename = "milktea_orders_report_" + LocalDate.now() + ".csv";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csvBytes);
+    }
 }
+

@@ -37,11 +37,19 @@ public class CreateOrderRequest {
 
     @DecimalMin(value = "0.0", inclusive = true, message = "Phí giao hàng không được âm")
     @Builder.Default
-    private double shippingFee = 0.0;
+    private Double shippingFee = 0.0;
 
     @DecimalMin(value = "0.0", inclusive = true, message = "Số tiền giảm giá không được âm")
     @Builder.Default
-    private double discountAmount = 0.0;
+    private Double discountAmount = 0.0;
+
+    public double getShippingFee() {
+        return shippingFee != null ? shippingFee : 0.0;
+    }
+
+    public double getDiscountAmount() {
+        return discountAmount != null ? discountAmount : 0.0;
+    }
 
     @Builder.Default
     private PaymentMethod paymentMethod = PaymentMethod.COD;

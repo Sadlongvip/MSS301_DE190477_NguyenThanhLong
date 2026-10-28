@@ -1,5 +1,5 @@
 -- Migration V4: Bổ sung cột số lượng tồn kho (stock_quantity) và tạo bảng quản lý giữ chỗ kho (t_inventory_reservations) cho Saga Choreography
-ALTER TABLE milk_tea ADD COLUMN IF NOT EXISTS stock_quantity INT NOT NULL DEFAULT 100;
+ALTER TABLE milk_tea ADD COLUMN stock_quantity INT NOT NULL DEFAULT 100;
 
 CREATE TABLE IF NOT EXISTS t_inventory_reservations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

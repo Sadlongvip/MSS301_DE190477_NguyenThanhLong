@@ -26,10 +26,10 @@ public class OrderResponse {
     private String phoneNumber;
     private String shippingAddress;
     private String note;
-    private double subtotal;
-    private double shippingFee;
-    private double discountAmount;
-    private double totalAmount;
+    private Double subtotal;
+    private Double shippingFee;
+    private Double discountAmount;
+    private Double totalAmount;
     private String voucherCode;
     private PaymentMethod paymentMethod;
     private PaymentStatus paymentStatus;

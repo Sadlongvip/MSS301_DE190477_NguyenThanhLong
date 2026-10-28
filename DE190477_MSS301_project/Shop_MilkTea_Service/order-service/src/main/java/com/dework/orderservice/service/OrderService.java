@@ -16,8 +16,10 @@ import com.dework.orderservice.model.OrderItem;
 import com.dework.orderservice.model.OrderStatus;
 import com.dework.orderservice.model.PaymentMethod;
 import com.dework.orderservice.model.PaymentStatus;
+import com.dework.orderservice.model.SagaLog;
 import com.dework.orderservice.repository.CartRepository;
 import com.dework.orderservice.repository.OrderRepository;
+import com.dework.orderservice.repository.SagaLogRepository;
 import com.dework.orderservice.service.PriceVerificationService.VerifiedProductInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +45,7 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final PriceVerificationService priceVerificationService;
     private final OrderEventProducer orderEventProducer;
+    private final SagaLogRepository sagaLogRepository;
 
     private static final DateTimeFormatter ORDER_CODE_DATE_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmmss");
 
@@ -150,11 +153,22 @@ public class OrderService {
                 .items(eventItems)
                 .build());
 
+        logSaga(saved.getOrderCode(), "ORDER_CREATED", "SUCCESS", "Đã tạo đơn hàng thành công và phát OrderCreatedEvent sang Kafka");
+
         return OrderResponse.from(saved);
     }
 
     public OrderResponse getOrderByCode(String orderCode) {
         return OrderResponse.from(findOrderByCode(orderCode));
+    }
+
+    public List<SagaLog> getSagaLogs(String orderCode) {
+        return sagaLogRepository.findByOrderCodeOrderByIdAsc(orderCode);
+    }
+
+    @Transactional
+    public void logSaga(String orderCode, String step, String result, String message) {
+        sagaLogRepository.save(new SagaLog(orderCode, step, result, message));
     }
 
     public OrderResponse getOrderById(Long id) {

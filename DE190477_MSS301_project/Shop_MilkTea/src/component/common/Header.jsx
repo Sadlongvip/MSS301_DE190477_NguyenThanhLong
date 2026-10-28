@@ -122,10 +122,24 @@ export function Header({ cartCount, onOpenCart, onOpenAuth }) {
               <span>Đơn Hàng</span>
             </Nav.Link>
 
-            {/* 5. Quản Trị (Chỉ hiển thị cho ADMIN) */}
+            {/* 5. Gọi Món Tại Quầy (POS) cho STAFF và ADMIN */}
+            {['ADMIN', 'STAFF'].includes(user?.role) && (
+              <Nav.Link
+                onClick={() => handleNavigate('/staff/pos')}
+                className={`px-3 py-1.5 rounded-pill hover-link text-nowrap d-flex align-items-center ${
+                  location.pathname === '/staff/pos' ? 'fw-bold text-success active-nav' : 'text-success fw-bold'
+                }`}
+                style={{ fontSize: '0.88rem', cursor: 'pointer' }}
+              >
+                <i className="bi bi-shop me-2 fs-6"></i>
+                <span>Gọi Món (POS)</span>
+              </Nav.Link>
+            )}
+
+            {/* 6. Quản Trị (Hiển thị riêng cho ADMIN) */}
             {user?.role === 'ADMIN' && (
               <Nav.Link
-                onClick={() => handleNavigate('/admin/menu')}
+                onClick={() => handleNavigate('/admin/dashboard')}
                 className={`px-3 py-1.5 rounded-pill hover-link text-nowrap d-flex align-items-center ${
                   location.pathname.startsWith('/admin') ? 'fw-bold text-danger active-nav' : 'text-danger fw-semibold'
                 }`}
@@ -160,10 +174,15 @@ export function Header({ cartCount, onOpenCart, onOpenAuth }) {
                     <p className="fw-bold mb-0 text-dark small">{user.username}</p>
                     <small className="text-muted" style={{ fontSize: '0.75rem' }}>{user.email || 'Khách hàng thân thiết'}</small>
                   </div>
+                  {['ADMIN', 'STAFF'].includes(user?.role) && (
+                    <Dropdown.Item onClick={() => handleNavigate('/staff/pos')} className="rounded-3 py-1.5 small text-success fw-bold">
+                      <i className="bi bi-shop me-2"></i> Gọi Món Tại Quầy (POS)
+                    </Dropdown.Item>
+                  )}
                   {user?.role === 'ADMIN' && (
                     <>
-                      <Dropdown.Item onClick={() => handleNavigate('/admin/menu')} className="rounded-3 py-1.5 small text-danger fw-bold">
-                        <i className="bi bi-sliders me-2"></i> Quản Trị Thực Đơn
+                      <Dropdown.Item onClick={() => handleNavigate('/admin/dashboard')} className="rounded-3 py-1.5 small text-danger fw-bold">
+                        <i className="bi bi-speedometer2 me-2"></i> Báo Cáo & Quản Trị
                       </Dropdown.Item>
                       <Dropdown.Divider />
                     </>

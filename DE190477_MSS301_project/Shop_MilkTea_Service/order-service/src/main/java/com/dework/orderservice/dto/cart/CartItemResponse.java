@@ -18,9 +18,9 @@ public class CartItemResponse {
     private String sugar;
     private String ice;
     private String toppings;
-    private int quantity;
-    private double unitPrice;
-    private double totalPrice;
+    private Integer quantity;
+    private Double unitPrice;
+    private Double totalPrice;
     private String image;
     private String note;
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Modal, Button, Form, Badge, Row, Col } from 'react-bootstrap';
 import { InventoryContext } from '../../context/InventoryContext';
-import { TOPPINGS as FALLBACK_TOPPINGS } from '../../constant/landingData';
+import { TOPPINGS as FALLBACK_TOPPINGS, DEFAULT_TEA_IMAGE } from '../../constant/landingData';
 
 const DEFAULT_FALLBACK_SIZES = [
   { id: 1, code: 'M', name: 'Size M (Tiêu chuẩn)', extraPrice: 0, isDefault: true, isAvailable: true },
@@ -96,9 +96,13 @@ export function ProductDetailModal({ show, product, onHide, onAddToCart }) {
           <Col md={5}>
             <div className="rounded-4 overflow-hidden shadow-sm mb-3 position-relative" style={{ height: '260px' }}>
               <img
-                src={product.image}
+                src={product.image || DEFAULT_TEA_IMAGE}
                 alt={product.name}
                 className="w-100 h-100 object-fit-cover"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = DEFAULT_TEA_IMAGE;
+                }}
               />
               <span className={`badge-custom-tag bg-${product.tagColor || 'primary'}`}>
                 {product.tag}

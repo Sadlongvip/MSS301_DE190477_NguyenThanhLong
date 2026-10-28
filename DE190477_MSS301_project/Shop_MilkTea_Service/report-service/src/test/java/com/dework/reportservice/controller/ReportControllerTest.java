@@ -54,7 +54,7 @@ class ReportControllerTest {
     @DisplayName("getSummary gọi reportService.getSummary và trả về kết quả")
     void getSummary_CallsService() {
         DashboardSummaryDto mockSummary = DashboardSummaryDto.builder()
-                .totalOrders(15)
+                .totalOrders(15L)
                 .totalRevenue(300000.0)
                 .build();
         when(reportService.getSummary(any(), any())).thenReturn(mockSummary);
@@ -62,7 +62,7 @@ class ReportControllerTest {
         DashboardSummaryDto result = reportController.getSummary(LocalDate.now(), LocalDate.now());
 
         assertNotNull(result);
-        assertEquals(15, result.getTotalOrders());
+        assertEquals(15L, result.getTotalOrders());
         assertEquals(300000.0, result.getTotalRevenue());
         verify(reportService).getSummary(any(), any());
     }
@@ -73,7 +73,7 @@ class ReportControllerTest {
         TopSellingItemDto item = TopSellingItemDto.builder()
                 .milkTeaId(1L)
                 .milkTeaName("Trà Sữa")
-                .totalQuantitySold(50)
+                .totalQuantitySold(50L)
                 .build();
         when(reportService.getTopSellingProducts(any(), any(), anyInt())).thenReturn(List.of(item));
 

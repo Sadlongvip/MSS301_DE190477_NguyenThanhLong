@@ -1,0 +1,1392 @@
+{
+  "info": {
+    "_postman_id": "9a12c4e5-8f3b-4721-a2c3-shopmilktea001",
+    "name": "Shop_MilkTea API Automation Tests",
+    "description": "Bộ Testcase tự động kiểm thử toàn diện Backend Microservices Shop_MilkTea (API Gateway, Customer, Inventory, Order, và chuỗi giao dịch phân tán Saga Choreography qua Apache Kafka).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0 - Authenticate",
+      "description": "Các kịch bản xác thực người dùng: Đăng nhập sai, Đăng ký mới, Đăng ký trùng dữ liệu, Đăng nhập thành công, Đăng nhập tài khoản bị khóa, Kiểm tra JWT token.",
+      "item": [
+        {
+          "name": "01. Đăng nhập thất bại - Sai thông tin (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 Unauthorized\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"Kiểm tra cấu trúc và thông báo lỗi đúng chuẩn\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(401);",
+                  "    pm.expect(response.error).to.eql(\"Unauthorized\");",
+                  "    pm.expect(response.message).to.eql(\"Invalid username or password\");",
+                  "    pm.expect(response.path).to.include(\"/api/auth/login\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"non_existing_user_mss301\",\n  \"password\": \"wrong_password_123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. Đăng ký tài khoản mới thành công (201 Created)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const timestamp = Date.now();",
+                  "const username = 'tester_' + timestamp;",
+                  "const email = 'tester_' + timestamp + '@milkteashop.com';",
+                  "pm.environment.set('registeredUsername', username);",
+                  "pm.environment.set('registeredEmail', email);",
+                  "pm.environment.set('registeredPassword', 'password123');"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Kiểm tra thông tin tài khoản vừa tạo thành công\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.id).to.be.a('number');",
+                  "    pm.expect(response.username).to.eql(pm.environment.get('registeredUsername'));",
+                  "    pm.expect(response.email).to.eql(pm.environment.get('registeredEmail'));",
+                  "    pm.expect(response.role).to.eql('CUSTOMER');",
+                  "    pm.expect(response.status).to.eql('ACTIVE');",
+                  "    pm.environment.set('customerUserId', response.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{registeredUsername}}\",\n  \"password\": \"{{registeredPassword}}\",\n  \"email\": \"{{registeredEmail}}\",\n  \"role\": \"CUSTOMER\",\n  \"phoneNumber\": \"0901234567\",\n  \"address\": \"123 Đường Test, Phường Bến Nghé, Quận 1, TP.HCM\",\n  \"birthday\": \"2000-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. Đăng ký thất bại - Trùng Username/Email (409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 409 Conflict\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test(\"Thông báo lỗi xung đột dữ liệu đã tồn tại\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(409);",
+                  "    pm.expect(response.message).to.include(\"already in use\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{registeredUsername}}\",\n  \"password\": \"{{registeredPassword}}\",\n  \"email\": \"{{registeredEmail}}\",\n  \"role\": \"CUSTOMER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. Đăng nhập bằng tài khoản đã đăng ký (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Trả về access token và trích xuất lưu vào biến môi trường\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.accessToken).to.be.a('string').and.not.empty;",
+                  "    pm.expect(response.tokenType).to.eql('Bearer');",
+                  "    pm.expect(response.role).to.eql('CUSTOMER');",
+                  "    pm.expect(response.username).to.eql(pm.environment.get('registeredUsername'));",
+                  "    pm.expect(response.userId).to.be.a('number');",
+                  "    ",
+                  "    // Lưu token và userId để dùng cho các request tiếp theo",
+                  "    pm.environment.set('customerToken', response.accessToken);",
+                  "    pm.environment.set('customerUserId', response.userId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{registeredUsername}}\",\n  \"password\": \"{{registeredPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. Đăng nhập thất bại - Tài khoản bị vô hiệu hóa (403 Forbidden)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 403 Forbidden\", function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test(\"Thông báo tài khoản không hoạt động / INACTIVE\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(403);",
+                  "    pm.expect(response.message).to.include(\"Your account is inactive\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"inactive_user\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. Kiểm tra Token người dùng - Hợp lệ (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Gateway xác thực JWT thành công và truy cập được API được bảo vệ\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "my"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07. Kiểm tra Token người dùng - Không hợp lệ / Hết hạn (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 401 Unauthorized\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer invalid_or_expired_jwt_token_mss301"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/my",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "my"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "1 - Cart",
+      "description": "Các kịch bản giỏ hàng: Kiểm tra danh mục sản phẩm/size/topping, Đặt sản phẩm hợp lệ, Đặt sản phẩm không tồn tại, Đặt sản phẩm sai giá (chống gian lận), Kiểm tra chi tiết giỏ hàng.",
+      "item": [
+        {
+          "name": "01. Kiểm tra danh sách sản phẩm trà sữa (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Lấy danh sách trà sữa và trích xuất thông tin sản phẩm mẫu\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array').and.not.empty;",
+                  "    ",
+                  "    const product = response[0];",
+                  "    pm.expect(product.id).to.be.a('number');",
+                  "    pm.expect(product.name).to.be.a('string');",
+                  "    pm.expect(product.price).to.be.a('number');",
+                  "    ",
+                  "    pm.environment.set('validMilkTeaId', product.id);",
+                  "    pm.environment.set('validMilkTeaName', product.name);",
+                  "    pm.environment.set('validMilkTeaBasePrice', product.price);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/milkteas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "milkteas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. Kiểm tra danh sách kích cỡ ly (Sizes) (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Trích xuất cấu hình size để tính đơn giá hợp lệ\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array').and.not.empty;",
+                  "    ",
+                  "    const sizeM = response.find(s => s.code === 'M') || response[0];",
+                  "    pm.environment.set('validSizeCode', sizeM.code);",
+                  "    pm.environment.set('validSizeExtraPrice', sizeM.extraPrice);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sizes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sizes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. Kiểm tra danh sách Topping (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Trích xuất topping mẫu để tính đơn giá hợp lệ\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array').and.not.empty;",
+                  "    ",
+                  "    const top = response[0];",
+                  "    pm.environment.set('validToppingName', top.name);",
+                  "    pm.environment.set('validToppingPrice', top.price);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/toppings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "toppings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. Đặt sản phẩm hợp lệ vào giỏ hàng (201 Created)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Đảm bảo có giá trị mẫu nếu người dùng chạy kiểm thử lẻ request này",
+                  "if (!pm.environment.get('validMilkTeaId')) {",
+                  "    pm.environment.set('validMilkTeaId', '1');",
+                  "}",
+                  "if (!pm.environment.get('validMilkTeaName')) {",
+                  "    pm.environment.set('validMilkTeaName', 'Trà sữa trân châu hoàng gia');",
+                  "}",
+                  "if (!pm.environment.get('validSizeCode')) {",
+                  "    pm.environment.set('validSizeCode', 'M');",
+                  "}",
+                  "if (!pm.environment.get('validToppingName')) {",
+                  "    pm.environment.set('validToppingName', 'Trân châu đen');",
+                  "}",
+                  "",
+                  "const base = Number(pm.environment.get('validMilkTeaBasePrice')) || 35000;",
+                  "const sizeExtra = Number(pm.environment.get('validSizeExtraPrice')) || 0;",
+                  "const topPrice = Number(pm.environment.get('validToppingPrice')) || 5000;",
+                  "const unitPrice = base + sizeExtra + topPrice;",
+                  "pm.environment.set('validUnitPrice', unitPrice);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Giỏ hàng cập nhật số lượng và tổng giá tiền totalPrice chuẩn xác\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.totalQuantity, \"totalQuantity phải >= 2\").to.be.at.least(2);",
+                  "    pm.expect(response.totalPrice, \"totalPrice của giỏ hàng phải lớn hơn 0\").to.be.above(0);",
+                  "    pm.expect(response.items).to.be.an('array').and.not.empty;",
+                  "    ",
+                  "    const addedItem = response.items.find(i => i.milkTeaId == pm.environment.get('validMilkTeaId'));",
+                  "    pm.expect(addedItem, \"Món vừa thêm phải tồn tại trong danh sách items\").to.exist;",
+                  "    pm.expect(addedItem.quantity).to.be.at.least(2);",
+                  "    pm.expect(addedItem.unitPrice).to.be.above(0);",
+                  "    pm.expect(addedItem.totalPrice).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"milkTeaId\": {{validMilkTeaId}},\n  \"milkTeaName\": \"{{validMilkTeaName}}\",\n  \"size\": \"{{validSizeCode}}\",\n  \"sugar\": \"100%\",\n  \"ice\": \"100%\",\n  \"toppings\": \"{{validToppingName}}\",\n  \"quantity\": 2,\n  \"unitPrice\": {{validUnitPrice}},\n  \"sessionId\": \"postman-cart-session\",\n  \"note\": \"Cho nhiều đá và trân châu\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/carts/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carts",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. Đặt sản phẩm không tồn tại vào giỏ hàng (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Thông báo lỗi món không tồn tại trong kho\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(400);",
+                  "    pm.expect(response.message).to.include(\"Không tìm thấy món trà sữa với ID: 999999\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"milkTeaId\": 999999,\n  \"milkTeaName\": \"Món trà sữa ảo không có thật\",\n  \"size\": \"M\",\n  \"sugar\": \"100%\",\n  \"ice\": \"100%\",\n  \"toppings\": \"\",\n  \"quantity\": 1,\n  \"unitPrice\": 40000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/carts/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carts",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. Đặt sản phẩm sai giá nhằm gian lận (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Chống gian lận: Hệ thống phát hiện sai lệch đơn giá\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(400);",
+                  "    pm.expect(response.message).to.include(\"không chính xác\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"milkTeaId\": {{validMilkTeaId}},\n  \"milkTeaName\": \"{{validMilkTeaName}}\",\n  \"size\": \"{{validSizeCode}}\",\n  \"sugar\": \"100%\",\n  \"ice\": \"100%\",\n  \"toppings\": \"{{validToppingName}}\",\n  \"quantity\": 1,\n  \"unitPrice\": 100\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/carts/items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carts",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07. Kiểm tra giỏ hàng của người dùng (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Giỏ hàng chứa các món hợp lệ của tài khoản\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.userId).to.eql(Number(pm.environment.get('customerUserId')));",
+                  "    pm.expect(response.items).to.be.an('array').and.not.empty;",
+                  "    pm.expect(response.totalPrice).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carts"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2 - Order & Kafka Saga",
+      "description": "Các kịch bản đặt hàng và kiểm tra Kafka Saga Choreography: Đặt đơn thành công COD, Kiểm tra Kafka Saga Logs, Kiểm tra trạng thái đơn sau Kafka, Kiểm tra dọn sạch giỏ hàng, Đặt đơn thiếu thông tin (Validation fail), Đặt được đơn nhưng bị lỗi lúc đặt (Saga Rollback kho hết hàng), Kiểm tra hủy đơn hàng.",
+      "item": [
+        {
+          "name": "01. Đặt đơn hàng thành công (COD - Tiền mặt) (201 Created)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Tạo đơn thành công và lưu mã đơn hàng\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.orderCode).to.be.a('string').and.include('ORD-');",
+                  "    pm.expect(response.paymentMethod).to.eql('COD');",
+                  "    pm.expect(response.paymentStatus).to.eql('UNPAID');",
+                  "    pm.expect(response.status).to.be.oneOf(['PENDING', 'CONFIRMED']);",
+                  "    pm.expect(response.totalAmount).to.be.above(0);",
+                  "    ",
+                  "    pm.environment.set('createdOrderCode', response.orderCode);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Nguyễn Văn Test\",\n  \"phoneNumber\": \"0901234567\",\n  \"shippingAddress\": \"123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM\",\n  \"note\": \"Giao hàng trong giờ hành chính\",\n  \"shippingFee\": 15000,\n  \"discountAmount\": 0,\n  \"paymentMethod\": \"COD\",\n  \"items\": [\n    {\n      \"milkTeaId\": {{validMilkTeaId}},\n      \"milkTeaName\": \"{{validMilkTeaName}}\",\n      \"size\": \"{{validSizeCode}}\",\n      \"sugar\": \"100%\",\n      \"ice\": \"100%\",\n      \"toppings\": \"{{validToppingName}}\",\n      \"quantity\": 2,\n      \"unitPrice\": {{validUnitPrice}},\n      \"note\": \"Ít đá\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. Kiểm tra Kafka Saga Logs - Happy Path COD (200 OK)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Chờ 1.5 giây để đảm bảo Kafka consumer và Saga Choreography đã tiêu thụ xong event",
+                  "const delayMs = 1500;",
+                  "const start = Date.now();",
+                  "while (Date.now() - start < delayMs) {}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Kiểm tra chuỗi sự kiện Kafka Saga đã được ghi nhận đúng chuẩn\", function () {",
+                  "    const logs = pm.response.json();",
+                  "    pm.expect(logs).to.be.an('array').and.not.empty;",
+                  "    ",
+                  "    // 1. Kiểm tra bước Order Created (Order Service -> Kafka)",
+                  "    const createdStep = logs.find(l => l.step === 'ORDER_CREATED');",
+                  "    pm.expect(createdStep, \"Phải có Saga Log ORDER_CREATED\").to.exist;",
+                  "    pm.expect(createdStep.result).to.eql('SUCCESS');",
+                  "    pm.expect(createdStep.message).to.include('Kafka');",
+                  "    ",
+                  "    // 2. Kiểm tra bước Reserve Inventory (Inventory Service -> Kafka)",
+                  "    const reserveStep = logs.find(l => l.step === 'RESERVE_INVENTORY');",
+                  "    pm.expect(reserveStep, \"Phải có bước RESERVE_INVENTORY được phản hồi từ Kafka\").to.exist;",
+                  "    pm.expect(reserveStep.result).to.eql('SUCCESS');",
+                  "    pm.expect(reserveStep.message).to.include('Kho đã giữ hàng thành công');",
+                  "    ",
+                  "    // 3. Kiểm tra bước Saga Completed",
+                  "    const completedStep = logs.find(l => l.step === 'SAGA_COMPLETED');",
+                  "    pm.expect(completedStep, \"Phải có bước SAGA_COMPLETED từ chuỗi Saga\").to.exist;",
+                  "    pm.expect(completedStep.result).to.eql('CONFIRMED');",
+                  "    pm.expect(completedStep.message).to.include('Đơn hàng COD được xác nhận thành công');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{createdOrderCode}}/saga-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{createdOrderCode}}",
+                "saga-logs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03. Kiểm tra trạng thái đơn sau khi Kafka hoàn tất (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Mã đơn hàng khớp với đơn vừa tạo\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.orderCode).to.eql(pm.environment.get('createdOrderCode'));",
+                  "});",
+                  "",
+                  "pm.test(\"Trạng thái đơn hàng sau khi Kafka hoàn tất BẮT BUỘC là CONFIRMED\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status, \"Sau khi chuỗi Kafka Saga hoàn tất, trạng thái đơn COD phải là CONFIRMED\").to.eql('CONFIRMED');",
+                  "});",
+                  "",
+                  "pm.test(\"Kiểm tra phương thức thanh toán và trạng thái thanh toán\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.paymentMethod).to.eql('COD');",
+                  "    pm.expect(response.paymentStatus).to.eql('UNPAID');",
+                  "    pm.expect(response.items).to.be.an('array').and.not.empty;",
+                  "    pm.expect(response.totalAmount).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{createdOrderCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{createdOrderCode}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04. Kiểm tra giỏ hàng đã được tự động dọn sạch sau khi đặt đơn (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Giỏ hàng của người dùng được auto-clear sau khi hoàn tất đặt hàng\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.items.length).to.eql(0);",
+                  "    pm.expect(response.totalQuantity).to.eql(0);",
+                  "    pm.expect(response.totalPrice).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/carts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "carts"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "05. Đặt đơn thất bại - Thiếu thông tin bắt buộc (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 400 Bad Request\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Validation bắt lỗi thiếu tên, số điện thoại, địa chỉ, items\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.status).to.eql(400);",
+                  "    pm.expect(response.message).to.be.a('string').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"\",\n  \"phoneNumber\": \"\",\n  \"shippingAddress\": \"\",\n  \"items\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "06. Đặt được đơn nhưng bị lỗi lúc đặt - Vượt quá tồn kho (201 Created -> Kafka Rollback)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get('validMilkTeaId')) {",
+                  "    pm.environment.set('validMilkTeaId', 1);",
+                  "}",
+                  "if (!pm.environment.get('validMilkTeaName')) {",
+                  "    pm.environment.set('validMilkTeaName', 'Trà Sữa Truyền Thống');",
+                  "}",
+                  "if (!pm.environment.get('validSizeCode')) {",
+                  "    pm.environment.set('validSizeCode', 'M');",
+                  "}",
+                  "if (!pm.environment.get('validToppingName')) {",
+                  "    pm.environment.set('validToppingName', 'Trân Châu Đen');",
+                  "}",
+                  "if (!pm.environment.get('validUnitPrice')) {",
+                  "    pm.environment.set('validUnitPrice', 40000);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created (Đơn được khởi tạo ban đầu)\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Khởi tạo đơn số lượng lớn (99999 ly) và lưu failedOrderCode để theo dõi Kafka\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.orderCode).to.be.a('string');",
+                  "    pm.expect(response.status).to.eql('PENDING');",
+                  "    pm.environment.set('failedOrderCode', response.orderCode);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Test Kịch Bản Kho Thất Bại\",\n  \"phoneNumber\": \"0901234567\",\n  \"shippingAddress\": \"123 Đường Test, Quận 1, TP.HCM\",\n  \"shippingFee\": 15000,\n  \"discountAmount\": 0,\n  \"paymentMethod\": \"COD\",\n  \"items\": [\n    {\n      \"milkTeaId\": {{validMilkTeaId}},\n      \"milkTeaName\": \"{{validMilkTeaName}}\",\n      \"size\": \"{{validSizeCode}}\",\n      \"sugar\": \"100%\",\n      \"ice\": \"100%\",\n      \"toppings\": \"{{validToppingName}}\",\n      \"quantity\": 99999,\n      \"unitPrice\": {{validUnitPrice}}\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "07. Kiểm tra Kafka Saga Logs trường hợp lỗi kho - Saga Rollback (200 OK)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Chờ 1.5 giây để Kafka gửi event sang kho và nhận event thất bại về thực hiện bù trừ Rollback",
+                  "const delayMs = 1500;",
+                  "const start = Date.now();",
+                  "while (Date.now() - start < delayMs) {}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Kiểm tra thông điệp lỗi kho và bù trừ Saga Rollback trong Saga Logs\", function () {",
+                  "    const logs = pm.response.json();",
+                  "    pm.expect(logs).to.be.an('array').and.not.empty;",
+                  "    ",
+                  "    // 1. OrderCreatedEvent phát sang Kafka",
+                  "    const createdLog = logs.find(l => l.step === 'ORDER_CREATED');",
+                  "    pm.expect(createdLog, \"Phải có ORDER_CREATED\").to.exist;",
+                  "    ",
+                  "    // 2. InventoryFailedEvent từ Kho phản hồi",
+                  "    const reserveFailedLog = logs.find(l => l.step === 'RESERVE_INVENTORY' && l.result === 'FAILED');",
+                  "    pm.expect(reserveFailedLog, \"Phải có bước RESERVE_INVENTORY báo FAILED\").to.exist;",
+                  "    pm.expect(reserveFailedLog.message).to.include('không đủ số lượng tồn kho');",
+                  "    ",
+                  "    // 3. Compensation Rollback",
+                  "    const compLog = logs.find(l => l.step === 'COMPENSATION');",
+                  "    pm.expect(compLog, \"Phải có bước COMPENSATION Rollback\").to.exist;",
+                  "    pm.expect(compLog.result).to.eql('CANCELLED');",
+                  "    pm.expect(compLog.message).to.include('Saga Rollback');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{failedOrderCode}}/saga-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{failedOrderCode}}",
+                "saga-logs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "08. Kiểm tra trạng thái đơn bị hủy tự động do kho thất bại (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Đơn hàng BẮT BUỘC chuyển trạng thái CANCELLED kèm cancelReason chi tiết\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.orderCode).to.eql(pm.environment.get('failedOrderCode'));",
+                  "    pm.expect(response.status, \"Trạng thái đơn hàng sau Saga Rollback phải là CANCELLED\").to.eql('CANCELLED');",
+                  "    pm.expect(response.cancelReason).to.include('Kho không thể đáp ứng');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{failedOrderCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{failedOrderCode}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "09. Tạo đơn hàng phụ để kiểm tra hủy đơn (201 Created)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Lưu mã đơn hàng cancelOrderCode\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.orderCode).to.be.a('string');",
+                  "    pm.environment.set('cancelOrderCode', response.orderCode);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Test Hủy Đơn\",\n  \"phoneNumber\": \"0901234567\",\n  \"shippingAddress\": \"123 Đường Test, Quận 1, TP.HCM\",\n  \"shippingFee\": 15000,\n  \"paymentMethod\": \"COD\",\n  \"items\": [\n    {\n      \"milkTeaId\": {{validMilkTeaId}},\n      \"milkTeaName\": \"{{validMilkTeaName}}\",\n      \"size\": \"{{validSizeCode}}\",\n      \"sugar\": \"100%\",\n      \"ice\": \"100%\",\n      \"toppings\": \"{{validToppingName}}\",\n      \"quantity\": 1,\n      \"unitPrice\": {{validUnitPrice}}\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "10. Người dùng thực hiện hủy đơn hàng (200 OK hoặc 400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Kiểm tra nghiệp vụ hủy đơn của Backend (200 OK nếu PENDING hoặc 400 nếu đã CONFIRMED)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                  "    const response = pm.response.json();",
+                  "    ",
+                  "    if (pm.response.code === 200) {",
+                  "        // Hủy thành công khi đơn còn PENDING",
+                  "        pm.expect(response.status).to.eql('CANCELLED');",
+                  "        pm.expect(response.cancelReason).to.include('Khách hàng đổi ý');",
+                  "    } else if (pm.response.code === 400) {",
+                  "        // Chặn hủy vì Kafka đã xác nhận CONFIRMED đơn hàng",
+                  "        pm.expect(response.message).to.include('Chỉ có thể hủy đơn hàng khi đơn đang ở trạng thái Chờ xác nhận (PENDING)');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Khách hàng đổi ý muốn đặt món khác\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{cancelOrderCode}}/cancel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{cancelOrderCode}}",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "11. Kiểm tra trạng thái đơn hàng sau thao tác hủy đơn (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Trạng thái đơn hàng phản ánh chính xác kết quả xử lý\", function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.orderCode).to.eql(pm.environment.get('cancelOrderCode'));",
+                  "    pm.expect(response.status).to.be.oneOf(['CANCELLED', 'CONFIRMED']);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{cancelOrderCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{cancelOrderCode}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
