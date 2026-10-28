@@ -1,0 +1,73 @@
+# ==========================================
+# Git Ignore Configuration
+# ==========================================
+
+# 1. Bỏ qua các file tài liệu Markdown theo yêu cầu
+*.md
+
+# 2. Build output & Compiled files
+target/
+build/
+out/
+bin/
+*.class
+
+# 3. Package & Archive files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+*.7z
+.mvn/wrapper/maven-wrapper.jar
+
+# 4. Logs
+*.log
+logs/
+
+# 5. IDE & Editor configurations
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Visual Studio Code
+.vscode/
+
+# Eclipse / STS
+.settings/
+.project
+.classpath
+.apt_generated
+.factorypath
+.springBeans
+.sts4-cache
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# 6. Temporary & Lock files (MS Office, System, Editors)
+~$*
+*.tmp
+*.bak
+*.swp
+*~
+temp_*.txt
+
+# 7. OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+
