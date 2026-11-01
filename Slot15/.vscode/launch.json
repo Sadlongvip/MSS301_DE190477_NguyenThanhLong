@@ -9,6 +9,16 @@
             "projectName": "roomservice",
             "args": "",
             "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-De190477ReservationserviceApplication<reservationservice>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "fu.de190477.reservationservice.De190477ReservationserviceApplication",
+            "projectName": "reservationservice",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }
