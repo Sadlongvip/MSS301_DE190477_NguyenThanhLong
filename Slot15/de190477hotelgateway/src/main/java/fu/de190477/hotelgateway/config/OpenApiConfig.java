@@ -1,4 +1,4 @@
-package fu.de190477.mediagateway.config;
+package fu.de190477.hotelgateway.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -9,11 +9,11 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI mediaGatewayOpenApi() {
+    public OpenAPI hotelGatewayOpenApi() {
         return new OpenAPI().info(new Info()
-                .title("Media Gateway API")
+                .title("Hotel Gateway API")
                 .version("1.0.0")
-                .description("MSS301 2026 Spring PE - Media Gateway (Spring Boot 4.1.0, WebFlux)"));
+                .description("MSS301 2026 Spring PE - Hotel Gateway (Spring Boot 4.1.0, WebFlux)"));
     }
 }
 

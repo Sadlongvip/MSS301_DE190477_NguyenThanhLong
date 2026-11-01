@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>fu.de190477</groupId>
-	<artifactId>postservice</artifactId>
+	<artifactId>reservationservice</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>postservice</name>
+	<name>reservationservice</name>
 	<description/>
 	<url/>
 	<licenses>

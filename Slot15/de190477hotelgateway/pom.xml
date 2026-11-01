@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>fu.de190477</groupId>
-	<artifactId>mediagateway</artifactId>
+	<artifactId>hotelgateway</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>mediagateway</name>
+	<name>hotelgateway</name>
 	<description/>
 	<url/>
 	<licenses>

@@ -1,4 +1,4 @@
-package fu.de190477.mediagateway.config;
+package fu.de190477.hotelgateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
