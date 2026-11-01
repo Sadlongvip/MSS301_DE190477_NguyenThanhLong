@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-De190477RoomserviceApplication<roomservice>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "fu.de190477.roomservice.De190477RoomserviceApplication",
+            "projectName": "roomservice",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
