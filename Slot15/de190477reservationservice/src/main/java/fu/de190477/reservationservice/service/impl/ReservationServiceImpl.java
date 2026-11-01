@@ -3,7 +3,6 @@ package fu.de190477.reservationservice.service.impl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import fu.de190477.reservationservice.client.RoomClient;
-import fu.de190477.reservationservice.common.PostConstants;
 import fu.de190477.reservationservice.dto.ApiResponse;
 import fu.de190477.reservationservice.dto.PageDTO;
 import fu.de190477.reservationservice.dto.ReservationDTO;
@@ -21,30 +20,43 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
 import java.util.List;
 
 @Service
 public class ReservationServiceImpl implements ReservationService {
 
-    private final ReservationRepository postRepository;
+    private static final String ROOM_AVAILABLE = "AVAILABLE";
+
+    private final ReservationRepository reservationRepository;
     private final RoomClient roomClient;
     private final ObjectMapper objectMapper;
 
-    public ReservationServiceImpl(ReservationRepository postRepository, RoomClient roomClient, ObjectMapper objectMapper) {
-        this.postRepository = postRepository;
+    public ReservationServiceImpl(ReservationRepository reservationRepository, RoomClient roomClient,
+                                  ObjectMapper objectMapper) {
+        this.reservationRepository = reservationRepository;
         this.roomClient = roomClient;
         this.objectMapper = objectMapper;
     }
 
     @Override
     @Transactional
-    public ApiResponse createPost(ReservationDTO dto) {
+    public ApiResponse createReservation(ReservationDTO dto) {
+        if (dto == null) {
+            return ApiResponse.error(2, "Reservation data is required");
+        }
+
         // Date validation (status 2 -> 406)
-        if (!dto.getEndDate().after(dto.getStartDate())) {
-            return ApiResponse.error(2, "endDate must be after startDate");
+        if (!isCheckOutAfterCheckIn(dto.getCheckInDate(), dto.getCheckOutDate())) {
+            return ApiResponse.error(2, "checkOutDate must be after checkInDate");
+        }
+
+        if (dto.getNumberOfGuest() == null) {
+            return ApiResponse.error(2, "numberOfGuest is required");
+        }
+
+        if (dto.getRoomId() == null) {
+            return ApiResponse.error(2, "roomId is required");
         }
 
         // Fetch room from RoomService via OpenFeign
@@ -53,100 +65,133 @@ public class ReservationServiceImpl implements ReservationService {
             return ApiResponse.error(4, "Room ID is not found"); // 404
         }
 
-        if (!PostConstants.ROOM_AVAILABLE.equals(room.getStatus())) {
-            return ApiResponse.error(5, "Room is not AVAILABLE for posting"); // 400
+        if (!ROOM_AVAILABLE.equalsIgnoreCase(room.getStatus())) {
+            return ApiResponse.error(5, "Room is not AVAILABLE for reservation"); // 400
         }
 
-        if (dto.getNumberOfPosts() > room.getCapacity()) {
-            return ApiResponse.error(2, "numberOfPosts must not exceed room's capacity"); // 406
+        if (room.getCapacity() != null && dto.getNumberOfGuest() > room.getCapacity()) {
+            return ApiResponse.error(2, "numberOfGuest must not exceed room's capacity"); // 406
         }
 
-        Post p = new Post();
-        p.setAdvertiserName(dto.getAdvertiserName());
-        p.setAdvertiserEmail(dto.getAdvertiserEmail());
-        p.setAdvertiserPhone(dto.getAdvertiserPhone());
-        p.setStartDate(dto.getStartDate());
-        p.setEndDate(dto.getEndDate());
-        p.setNumberOfPosts(dto.getNumberOfPosts());
-        p.setRoomId(dto.getRoomId());
-        p.setTotalCost(computeTotal(room.getPricePerNight(), dto.getStartDate(), dto.getEndDate()));
-        p.setStatus(PostStatus.SCHEDULED); // Default status is SCHEDULED
+        Reservation reservation = new Reservation();
+        reservation.setGuestName(dto.getGuestName());
+        reservation.setGuestEmail(dto.getGuestEmail());
+        reservation.setGuestPhone(dto.getGuestPhone());
+        reservation.setCheckInDate(dto.getCheckInDate());
+        reservation.setCheckOutDate(dto.getCheckOutDate());
+        reservation.setNumberOfGuest(dto.getNumberOfGuest());
+        reservation.setRoomId(dto.getRoomId());
+        reservation.setTotalAmount(computeTotal(room.getPricePerNight(), dto.getCheckInDate(), dto.getCheckOutDate()));
+        reservation.setStatus(dto.getStatus() == null
+                ? ReservationStatus.CONFIRMED
+                : ReservationStatus.valueOf(dto.getStatus()));
 
-        Post saved = postRepository.save(p);
-        return ApiResponse.of(1, "Post campaign created successfully", toDTO(saved));
+        Reservation saved = reservationRepository.save(reservation);
+        return ApiResponse.of(1, "Reservation created successfully", toDTO(saved));
     }
 
     @Override
     @Transactional
-    public ApiResponse updatePost(Long postId, ReservationDTO dto) {
-        Post p = postRepository.findById(postId).orElse(null);
-        if (p == null) {
-            return ApiResponse.error(4, "Post Id is not found");
+    public ApiResponse updateReservation(Long reservationId, ReservationDTO dto) {
+        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
+        if (reservation == null) {
+            return ApiResponse.error(4, "Reservation is not found");
         }
 
-        // Validate effective dates before altering entity
-        Date effectiveStart = dto.getStartDate() != null ? dto.getStartDate() : p.getStartDate();
-        Date effectiveEnd = dto.getEndDate() != null ? dto.getEndDate() : p.getEndDate();
-        if (!effectiveEnd.after(effectiveStart)) {
-            return ApiResponse.error(2, "endDate must be after startDate");
+        if (dto == null) {
+            return ApiResponse.error(2, "Reservation data is required");
         }
 
-        // Partial update
-        if (dto.getAdvertiserName() != null) {
-            p.setAdvertiserName(dto.getAdvertiserName());
+        // Validate effective dates before altering the entity
+        LocalDate effectiveCheckIn = dto.getCheckInDate() != null
+                ? dto.getCheckInDate()
+                : reservation.getCheckInDate();
+        LocalDate effectiveCheckOut = dto.getCheckOutDate() != null
+                ? dto.getCheckOutDate()
+                : reservation.getCheckOutDate();
+        if (!isCheckOutAfterCheckIn(effectiveCheckIn, effectiveCheckOut)) {
+            return ApiResponse.error(2, "checkOutDate must be after checkInDate");
         }
-        if (dto.getAdvertiserEmail() != null) {
-            p.setAdvertiserEmail(dto.getAdvertiserEmail());
+
+        int effectiveNumberOfGuest = dto.getNumberOfGuest() != null
+                ? dto.getNumberOfGuest()
+                : reservation.getNumberOfGuest();
+        if (effectiveNumberOfGuest < 1) {
+            return ApiResponse.error(2, "numberOfGuest must be >= 1");
         }
-        if (dto.getAdvertiserPhone() != null) {
-            p.setAdvertiserPhone(dto.getAdvertiserPhone());
+
+        Long effectiveRoomId = dto.getRoomId() != null ? dto.getRoomId() : reservation.getRoomId();
+        RoomDTO room = fetchRoom(effectiveRoomId);
+        if (room == null) {
+            return ApiResponse.error(4, "Room ID is not found");
         }
-        p.setStartDate(effectiveStart);
-        p.setEndDate(effectiveEnd);
-        if (dto.getNumberOfPosts() != null) {
-            p.setNumberOfPosts(dto.getNumberOfPosts());
+
+        // Only a newly selected room must be available; the current room may have
+        // changed status after the reservation was created.
+        boolean roomChanged = !effectiveRoomId.equals(reservation.getRoomId());
+        if (roomChanged && !ROOM_AVAILABLE.equalsIgnoreCase(room.getStatus())) {
+            return ApiResponse.error(5, "Room is not AVAILABLE for reservation");
         }
+
+        if (room.getCapacity() != null && effectiveNumberOfGuest > room.getCapacity()) {
+            return ApiResponse.error(2, "numberOfGuest must not exceed room's capacity");
+        }
+
+        // Partial update: only non-null fields are applied
+        if (dto.getGuestName() != null) {
+            reservation.setGuestName(dto.getGuestName());
+        }
+        if (dto.getGuestEmail() != null) {
+            reservation.setGuestEmail(dto.getGuestEmail());
+        }
+        if (dto.getGuestPhone() != null) {
+            reservation.setGuestPhone(dto.getGuestPhone());
+        }
+        reservation.setCheckInDate(effectiveCheckIn);
+        reservation.setCheckOutDate(effectiveCheckOut);
+        reservation.setNumberOfGuest(effectiveNumberOfGuest);
+        reservation.setRoomId(effectiveRoomId);
         if (dto.getStatus() != null) {
-            p.setStatus(PostStatus.valueOf(dto.getStatus()));
+            reservation.setStatus(ReservationStatus.valueOf(dto.getStatus()));
         }
 
-        // Recompute total cost based on the current room rate
-        RoomDTO room = fetchRoom(p.getRoomId());
-        if (room != null) {
-            p.setTotalCost(computeTotal(room.getPricePerNight(), p.getStartDate(), p.getEndDate()));
-        }
+        // Recompute total amount based on the current room rate
+        reservation.setTotalAmount(computeTotal(room.getPricePerNight(), effectiveCheckIn, effectiveCheckOut));
 
-        Post saved = postRepository.save(p);
-        return ApiResponse.ok("Post campaign updated successfully", toDTO(saved));
+        Reservation saved = reservationRepository.save(reservation);
+        return ApiResponse.ok("Reservation updated successfully", toDTO(saved));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse getPostById(Long postId) {
-        Post p = postRepository.findById(postId).orElse(null);
-        if (p == null) {
-            return ApiResponse.error(4, "Post is not found");
+    public ApiResponse getReservationById(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
+        if (reservation == null) {
+            return ApiResponse.error(4, "Reservation is not found");
         }
-        return ApiResponse.ok("Successful", toDetailDTO(p));
+        return ApiResponse.ok("Successful", toDetailDTO(reservation));
     }
 
     @Override
     @Transactional
-    public ApiResponse cancelPost(Long postId) {
-        Post p = postRepository.findById(postId).orElse(null);
-        if (p == null) {
-            return ApiResponse.error(4, "Post is not found");
+    public ApiResponse cancelReservation(Long reservationId) {
+        Reservation reservation = reservationRepository.findById(reservationId).orElse(null);
+        if (reservation == null) {
+            return ApiResponse.error(4, "Reservation is not found");
         }
-        p.setStatus(PostStatus.CANCELLED);
-        postRepository.save(p);
-        return ApiResponse.ok("Post campaign is cancelled successfully", null);
+        reservation.setStatus(ReservationStatus.CANCELLED);
+        reservationRepository.save(reservation);
+        return ApiResponse.ok("Reservation cancelled successfully", null);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ApiResponse getPostList(String advertiserName, String status, Pageable pageable) {
-        Page<Post> page = postRepository.search(emptyToNull(advertiserName), parsePostStatus(status), pageable);
-        List<PostDetailDTO> content = page.getContent().stream().map(this::toDetailDTO).toList();
+    public ApiResponse getReservationList(String guestName, String status, Pageable pageable) {
+        Page<Reservation> page = reservationRepository.search(
+                emptyToNull(guestName), parseReservationStatus(status), pageable);
+        List<ReservationDetailDTO> content = page.getContent().stream()
+                .map(this::toDetailDTO)
+                .toList();
         PageDTO pageDTO = new PageDTO(
                 page.getSize(),
                 page.getNumber(),
@@ -175,45 +220,52 @@ public class ReservationServiceImpl implements ReservationService {
         }
     }
 
-    private BigDecimal computeTotal(BigDecimal ratePerPost, Date start, Date end) {
-        long days = ChronoUnit.DAYS.between(toLocalDate(start), toLocalDate(end));
-        if (days < 1) {
-            days = 1;
+    /**
+     * Tổng tiền = giá phòng mỗi đêm x số đêm. Số đêm tối thiểu là 1.
+     */
+    private BigDecimal computeTotal(BigDecimal pricePerNight, LocalDate checkInDate, LocalDate checkOutDate) {
+        if (pricePerNight == null || checkInDate == null || checkOutDate == null) {
+            return BigDecimal.ZERO;
         }
-        return ratePerPost.multiply(BigDecimal.valueOf(days));
+        long nights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
+        if (nights < 1) {
+            nights = 1;
+        }
+        return pricePerNight.multiply(BigDecimal.valueOf(nights));
     }
 
-    private LocalDate toLocalDate(Date date) {
-        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    private boolean isCheckOutAfterCheckIn(LocalDate checkInDate, LocalDate checkOutDate) {
+        return checkInDate != null && checkOutDate != null && checkOutDate.isAfter(checkInDate);
     }
 
-    private ReservationDTO toDTO(Post p) {
+    private ReservationDTO toDTO(Reservation reservation) {
         ReservationDTO d = new ReservationDTO();
-        d.setPostId(p.getPostId());
-        d.setAdvertiserName(p.getAdvertiserName());
-        d.setAdvertiserEmail(p.getAdvertiserEmail());
-        d.setAdvertiserPhone(p.getAdvertiserPhone());
-        d.setStartDate(p.getStartDate());
-        d.setEndDate(p.getEndDate());
-        d.setNumberOfPosts(p.getNumberOfPosts());
-        d.setTotalCost(p.getTotalCost());
-        d.setStatus(p.getStatus().name());
-        d.setRoomId(p.getRoomId());
+        d.setReservationId(reservation.getReservationId());
+        d.setGuestName(reservation.getGuestName());
+        d.setGuestEmail(reservation.getGuestEmail());
+        d.setGuestPhone(reservation.getGuestPhone());
+        d.setCheckInDate(reservation.getCheckInDate());
+        d.setCheckOutDate(reservation.getCheckOutDate());
+        d.setNumberOfGuest(reservation.getNumberOfGuest());
+        d.setTotalAmount(reservation.getTotalAmount());
+        d.setStatus(reservation.getStatus().name());
+        d.setRoomId(reservation.getRoomId());
         return d;
     }
 
-    private PostDetailDTO toDetailDTO(Post p) {
-        PostDetailDTO d = new PostDetailDTO();
-        d.setPostId(p.getPostId());
-        d.setAdvertiserName(p.getAdvertiserName());
-        d.setAdvertiserEmail(p.getAdvertiserEmail());
-        d.setAdvertiserPhone(p.getAdvertiserPhone());
-        d.setStartDate(p.getStartDate());
-        d.setEndDate(p.getEndDate());
-        d.setNumberOfPosts(p.getNumberOfPosts());
-        d.setTotalCost(p.getTotalCost());
-        d.setStatus(p.getStatus().name());
-        d.setRoom(fetchRoom(p.getRoomId()));
+    private ReservationDetailDTO toDetailDTO(Reservation reservation) {
+        ReservationDetailDTO d = new ReservationDetailDTO();
+        d.setReservationId(reservation.getReservationId());
+        d.setGuestName(reservation.getGuestName());
+        d.setGuestEmail(reservation.getGuestEmail());
+        d.setGuestPhone(reservation.getGuestPhone());
+        d.setCheckInDate(reservation.getCheckInDate());
+        d.setCheckOutDate(reservation.getCheckOutDate());
+        d.setNumberOfGuest(reservation.getNumberOfGuest());
+        d.setTotalAmount(reservation.getTotalAmount());
+        d.setStatus(reservation.getStatus().name());
+        d.setRoomId(reservation.getRoomId());
+        d.setRoom(fetchRoom(reservation.getRoomId()));
         return d;
     }
 
@@ -221,15 +273,14 @@ public class ReservationServiceImpl implements ReservationService {
         return (s == null || s.isBlank()) ? null : s;
     }
 
-    private PostStatus parsePostStatus(String s) {
+    private ReservationStatus parseReservationStatus(String s) {
         if (s == null || s.isBlank()) {
             return null;
         }
         try {
-            return PostStatus.valueOf(s);
+            return ReservationStatus.valueOf(s);
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
 }
-

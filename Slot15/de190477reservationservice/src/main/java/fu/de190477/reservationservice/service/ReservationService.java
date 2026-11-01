@@ -7,14 +7,13 @@ import fu.de190477.reservationservice.dto.ReservationDTO;
 
 public interface ReservationService {
 
-    ApiResponse createPost(ReservationDTO dto);
+    ApiResponse createReservation(ReservationDTO dto);
 
-    ApiResponse updatePost(Long postId, ReservationDTO dto);
+    ApiResponse updateReservation(Long reservationId, ReservationDTO dto);
 
-    ApiResponse getPostById(Long postId);
+    ApiResponse getReservationById(Long reservationId);
 
-    ApiResponse cancelPost(Long postId);
+    ApiResponse cancelReservation(Long reservationId);
 
-    ApiResponse getPostList(String advertiserName, String status, Pageable pageable);
+    ApiResponse getReservationList(String guestName, String status, Pageable pageable);
 }
-

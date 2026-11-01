@@ -20,18 +20,18 @@ import fu.de190477.reservationservice.dto.ReservationDTO;
 import fu.de190477.reservationservice.service.ReservationService;
 
 @RestController
-@RequestMapping("/api/posts")
-public class DE190477PostController {
+@RequestMapping("/api/reservations")
+public class DE190477ReservationController {
 
-    private final ReservationService postService;
+    private final ReservationService reservationService;
 
-    public DE190477PostController(ReservationService postService) {
-        this.postService = postService;
+    public DE190477ReservationController(ReservationService reservationService) {
+        this.reservationService = reservationService;
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse> createPost(@Valid @RequestBody ReservationDTO dto) {
-        ApiResponse res = postService.createPost(dto);
+    public ResponseEntity<ApiResponse> createReservation(@Valid @RequestBody ReservationDTO dto) {
+        ApiResponse res = reservationService.createReservation(dto);
         if (res.getStatus() == 4) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(res); // 404
         }
@@ -44,12 +44,16 @@ public class DE190477PostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(res); // 201
     }
 
-    @PutMapping("/{postId}")
-    public ResponseEntity<ApiResponse> updatePost(@PathVariable("postId") Long postId,
-                                                  @RequestBody ReservationDTO dto) {
-        ApiResponse res = postService.updatePost(postId, dto);
+    @PutMapping("/{reservationId}")
+    public ResponseEntity<ApiResponse> updateReservation(
+            @PathVariable("reservationId") Long reservationId,
+            @RequestBody ReservationDTO dto) {
+        ApiResponse res = reservationService.updateReservation(reservationId, dto);
         if (res.getStatus() == 4) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(res); // 404
+        }
+        if (res.getStatus() == 5) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res); // 400
         }
         if (res.getStatus() == 2) {
             return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).body(res); // 406
@@ -57,18 +61,20 @@ public class DE190477PostController {
         return ResponseEntity.ok(res); // 200
     }
 
-    @GetMapping("/{postId}")
-    public ResponseEntity<ApiResponse> getPostById(@PathVariable("postId") Long postId) {
-        ApiResponse res = postService.getPostById(postId);
+    @GetMapping("/{reservationId}")
+    public ResponseEntity<ApiResponse> getReservationById(
+            @PathVariable("reservationId") Long reservationId) {
+        ApiResponse res = reservationService.getReservationById(reservationId);
         if (res.getStatus() == 4) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(res); // 404
         }
         return ResponseEntity.ok(res); // 200
     }
 
-    @DeleteMapping("/{postId}")
-    public ResponseEntity<ApiResponse> cancelPost(@PathVariable("postId") Long postId) {
-        ApiResponse res = postService.cancelPost(postId);
+    @DeleteMapping("/{reservationId}")
+    public ResponseEntity<ApiResponse> cancelReservation(
+            @PathVariable("reservationId") Long reservationId) {
+        ApiResponse res = reservationService.cancelReservation(reservationId);
         if (res.getStatus() == 4) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(res); // 404
         }
@@ -76,10 +82,10 @@ public class DE190477PostController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse> getPostList(
+    public ResponseEntity<ApiResponse> getReservationList(
             @RequestParam(name = "page", defaultValue = "0") Integer page,
             @RequestParam(name = "size", defaultValue = "10") Integer size,
-            @RequestParam(name = "advertiserName", required = false) String advertiserName,
+            @RequestParam(name = "guestName", required = false) String guestName,
             @RequestParam(name = "status", required = false) String status) {
 
         if (size > 100 || size < 1 || page < 0) {
@@ -88,8 +94,7 @@ public class DE190477PostController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        ApiResponse res = postService.getPostList(advertiserName, status, pageable);
+        ApiResponse res = reservationService.getReservationList(guestName, status, pageable);
         return ResponseEntity.ok(res); // 200
     }
 }
-
