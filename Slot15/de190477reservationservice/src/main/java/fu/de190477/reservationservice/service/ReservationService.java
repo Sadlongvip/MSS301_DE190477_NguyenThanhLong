@@ -5,7 +5,7 @@ import org.springframework.data.domain.Pageable;
 import fu.de190477.reservationservice.dto.ApiResponse;
 import fu.de190477.reservationservice.dto.ReservationDTO;
 
-public interface PostService {
+public interface ReservationService {
 
     ApiResponse createPost(ReservationDTO dto);
 

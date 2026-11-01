@@ -7,12 +7,12 @@ import fu.de190477.reservationservice.common.PostConstants;
 import fu.de190477.reservationservice.dto.ApiResponse;
 import fu.de190477.reservationservice.dto.PageDTO;
 import fu.de190477.reservationservice.dto.ReservationDTO;
-import fu.de190477.reservationservice.dto.PostDetailDTO;
+import fu.de190477.reservationservice.dto.ReservationDetailDTO;
 import fu.de190477.reservationservice.dto.RoomDTO;
-import fu.de190477.reservationservice.entity.Post;
-import fu.de190477.reservationservice.entity.PostStatus;
-import fu.de190477.reservationservice.repository.PostRepository;
-import fu.de190477.reservationservice.service.PostService;
+import fu.de190477.reservationservice.entity.Reservation;
+import fu.de190477.reservationservice.entity.ReservationStatus;
+import fu.de190477.reservationservice.repository.ReservationRepository;
+import fu.de190477.reservationservice.service.ReservationService;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,13 +27,13 @@ import java.util.Date;
 import java.util.List;
 
 @Service
-public class PostServiceImpl implements PostService {
+public class ReservationServiceImpl implements ReservationService {
 
-    private final PostRepository postRepository;
+    private final ReservationRepository postRepository;
     private final RoomClient roomClient;
     private final ObjectMapper objectMapper;
 
-    public PostServiceImpl(PostRepository postRepository, RoomClient roomClient, ObjectMapper objectMapper) {
+    public ReservationServiceImpl(ReservationRepository postRepository, RoomClient roomClient, ObjectMapper objectMapper) {
         this.postRepository = postRepository;
         this.roomClient = roomClient;
         this.objectMapper = objectMapper;

@@ -17,15 +17,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fu.de190477.reservationservice.dto.ApiResponse;
 import fu.de190477.reservationservice.dto.ReservationDTO;
-import fu.de190477.reservationservice.service.PostService;
+import fu.de190477.reservationservice.service.ReservationService;
 
 @RestController
 @RequestMapping("/api/posts")
 public class DE190477PostController {
 
-    private final PostService postService;
+    private final ReservationService postService;
 
-    public DE190477PostController(PostService postService) {
+    public DE190477PostController(ReservationService postService) {
         this.postService = postService;
     }
 
