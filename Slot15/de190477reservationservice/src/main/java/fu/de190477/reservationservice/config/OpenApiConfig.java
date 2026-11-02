@@ -9,11 +9,11 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
 
     @Bean
-    public OpenAPI postServiceOpenApi() {
+    public OpenAPI reservationServiceOpenApi() {
         return new OpenAPI().info(new Info()
-                .title("Post Service API")
+                .title("Reservation Service API")
                 .version("1.0.0")
-                .description("MSS301 2026 Spring PE - Post Service (Spring Boot 4.1.0)"));
+                .description("MSS301 2026 Spring PE - Reservation Service (Spring Boot 4.1.0)"));
     }
 }
 

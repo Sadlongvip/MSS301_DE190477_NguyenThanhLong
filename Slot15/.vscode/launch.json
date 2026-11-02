@@ -19,6 +19,16 @@
             "projectName": "reservationservice",
             "args": "",
             "envFile": "${workspaceFolder}/.env"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-De190477HotelgatewayApplication<hotelgateway>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "fu.de190477.hotelgateway.De190477HotelgatewayApplication",
+            "projectName": "hotelgateway",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }
